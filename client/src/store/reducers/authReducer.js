@@ -3,15 +3,50 @@ import api from "../../api/api";
 import jwt_decode from "jwt-decode";
 
 // Customer Register Action
+// export const customer_register = createAsyncThunk(
+//   "auth/customer_register",
+//   async (info, { rejectWithValue, fulfillWithValue }) => {
+//     try {
+//       const { data } = await api.post("/customer/customer-register", info);
+//       localStorage.setItem("customerToken", data.token);
+//       return fulfillWithValue(data);
+//     } catch (error) {
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
+// // Customer Login Action
+// export const customer_login = createAsyncThunk(
+//   "auth/customer_login",
+//   async (info, { rejectWithValue, fulfillWithValue }) => {
+//     try {
+//       const { data } = await api.post("/customer/customer-login", info);
+//       localStorage.setItem("customerToken", data.token);
+//       return fulfillWithValue(data);
+//     } catch (error) {
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
+
+// Customer Register Action
 export const customer_register = createAsyncThunk(
   "auth/customer_register",
   async (info, { rejectWithValue, fulfillWithValue }) => {
     try {
-      const { data } = await api.post("/customer/customer-register", info);
+      const { data } = await api.post(
+        "/customer/customer-register",
+        info,
+        {
+          withCredentials: true,   // 👈 important
+        }
+      );
       localStorage.setItem("customerToken", data.token);
       return fulfillWithValue(data);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { error: "Something went wrong" });
     }
   }
 );
@@ -21,14 +56,21 @@ export const customer_login = createAsyncThunk(
   "auth/customer_login",
   async (info, { rejectWithValue, fulfillWithValue }) => {
     try {
-      const { data } = await api.post("/customer/customer-login", info);
+      const { data } = await api.post(
+        "/customer/customer-login",
+        info,
+        {
+          withCredentials: true,   // 👈 important
+        }
+      );
       localStorage.setItem("customerToken", data.token);
       return fulfillWithValue(data);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || { error: "Something went wrong" });
     }
   }
 );
+
 
 export const userDetail = createAsyncThunk(
   "auth/user-details",
@@ -36,6 +78,8 @@ export const userDetail = createAsyncThunk(
   async (_, { rejectWithValue, fulfillWithValue }) => {
     try {
       const { data } = await api.get(`/useringfo`, { withCredentials: true });
+      console.log(" data",data);
+      
       return fulfillWithValue(data);
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -129,6 +173,8 @@ export const authReducer = createSlice({
       })
       .addCase(userDetail.fulfilled, (state, { payload }) => {
         const userData = payload.data;
+        // console.log("userData",userData);
+        
         // console.log("user", userData);
         state.successMessage = payload.message;
         state.loader = false;

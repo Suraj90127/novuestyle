@@ -4,16 +4,25 @@ import { TbTruckDelivery } from "react-icons/tb";
 import { RiSecurePaymentLine } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
 import { get_card_products } from "../store/reducers/cardReducer";
-import { customer_login } from "../store/reducers/authReducer";
+import { customer_login, userDetail } from "../store/reducers/authReducer";
 
 const CheckoutRight = ({ products, price }) => {
   const { userInfo } = useSelector((state) => state.auth);
   const { shipping_fee } = useSelector((state) => state.card);
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    dispatch(customer_login());
+
+  
+
+  // useEffect(() => {
+  //   dispatch(customer_login());
+  // }, [dispatch]);
+
+
+    useEffect(() => {
+    dispatch(userDetail());
   }, [dispatch]);
+  
 
   useEffect(() => {
     dispatch(get_card_products(userInfo.id));

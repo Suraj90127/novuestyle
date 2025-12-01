@@ -17,11 +17,18 @@ import {
   Tag,
 } from "lucide-react";
 
+import { getShipping } from './../store/reducers/homeReducer';
+import Shipping from './Shiping';
+
 const ViewProduct = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { myOrder } = useSelector((state) => state.order);
   const { userInfo } = useSelector((state) => state.auth);
+   const { shipping } = useSelector((state) => state.home);
+
+     let codFee = shipping?.shipping?.cod_fee;
+     let Shipping_fee = shipping?.shipping?.shipping_fee;
 
   useEffect(() => {
     dispatch(get_order(id));
@@ -51,6 +58,9 @@ const ViewProduct = () => {
         return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
+
+  console.log("myOrder",myOrder);
+  
 
   const calculateDiscountedPrice = (price, discount) => {
     return price - Math.floor((price * discount) / 100);
@@ -100,11 +110,28 @@ const ViewProduct = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Order Date</span>
                 <span className="text-gray-900">{formatDate(myOrder.date)}</span>
+                
               </div>
+
+                <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Actual Amount</span>
+                <span className="text-gray-900">₹ {myOrder.price-Shipping_fee}</span>
+              </div>
+
+                <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Shipping Fee</span>
+                <span className="text-gray-900">+ ₹ {Shipping_fee}</span>
+              </div>
+               {myOrder.payment_status==="COD" &&(
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">COD Amount</span>
+                <span className="text-gray-900"> - {codFee}</span>
+              </div>
+              )}
 
               <div className="flex justify-between text-lg font-semibold">
                 <span className="text-gray-700">Total Amount</span>
-                <span className="text-primary">₹{myOrder.price}</span>
+                <span className="text-primary">₹ {myOrder.payment_status==="COD" ? myOrder.price-codFee:myOrder.price}</span>
               </div>
             </div>
           </div>

@@ -73,6 +73,9 @@ const Header = () => {
     dispatch(get_products());
   }, [dispatch]);
 
+
+    console.log("!userInfo._id",userInfo);
+
   // fetch cart/wishlist when user logs in
   useEffect(() => {
     if (userInfo) {

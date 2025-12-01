@@ -13,6 +13,7 @@ import { user_reset } from "../store/reducers/authReducer";
 import { reset_count } from "../store/reducers/cardReducer";
 import { get_orders } from "../store/reducers/orderReducer";
 import { IoMdMenu } from "react-icons/io";
+// import { userDetail } from './../store/reducers/authReducer';
 
 
 export default function Component() {
@@ -85,6 +86,10 @@ export default function Component() {
     setIsAddFormVisible(false);
   };
 
+    useEffect(() => {
+    dispatch(userDetail());
+  }, [dispatch]);
+
   const [activeSection, setActiveSection] = useState(active || "dashboard");
 
   const user = {
@@ -139,7 +144,7 @@ export default function Component() {
 
       <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 gap-6">
         {/* Sidebar */}
-        <div className={`fixed right-0 top-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:relative md:transform-none md:w-64 md:top-auto md:right-auto md:h-auto md:shadow-none z-50 ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        <div className={`fixed right-0 top-0 sm:mt-[25%] md:mt-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:relative md:transform-none md:w-64 md:top-auto md:right-auto md:h-auto md:shadow-none z-50 ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
           } md:translate-x-0`}
           style={{ top: 'var(--header-height, 0px)' }}
         >
@@ -240,7 +245,11 @@ export default function Component() {
                 <h2 className="text-lg font-semibold p-6 border-b text-gray-800">
                   Order History
                 </h2>
-                <div className="bg-yellow-50 p-4 text-yellow-700 border-l-4 border-yellow-400">
+                <div onClick={() => {
+                  setActiveSection("myorders");
+                  // setMobileMenuOpen(false);
+                }} 
+                className="bg-yellow-50 p-4 text-yellow-700 border-l-4 border-yellow-400">
                   You have {myOrders.length} order(s) in your history
                 </div>
               </div>
@@ -551,60 +560,77 @@ export default function Component() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {myOrders?.length > 0 ? (
-                      myOrders.map((o, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            #{o._id.slice(-8).toUpperCase()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ₹{o.price}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${o.payment_status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                              {o.payment_status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${o.delivery_status === 'delivered'
-                              ? 'bg-green-100 text-green-800'
-                              : o.delivery_status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-blue-100 text-blue-800'
-                              }`}>
-                              {o.delivery_status === "pending" ? "To be Printed" : o.delivery_status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <Link
-                              to={`/dashboard/order/details/${o._id}`}
-                              className="text-primary-600 hover:text-primary-900 mr-3"
-                            >
-                              View
-                            </Link>
-                            {o.payment_status !== "paid" && (
-                              <button
-                                onClick={() => redirect(o)}
-                                className="text-primary-600 hover:text-primary-900"
-                              >
-                                Pay Now
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
-                          No orders found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
+             <tbody className="bg-white divide-y divide-gray-200">
+  {myOrders?.length > 0 ? (
+    myOrders.map((o, i) => (
+      <tr
+        key={i}
+        onClick={() => navigate(`/dashboard/order/details/${o._id}`)}
+        className="hover:bg-gray-50 cursor-pointer"
+      >
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          #{o._id.slice(-8).toUpperCase()}
+        </td>
+
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          ₹{o.price}
+        </td>
+
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          <span
+            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              o.payment_status === "paid"
+                ? "bg-green-100 text-green-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {o.payment_status}
+          </span>
+        </td>
+
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          <span
+            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              o.delivery_status === "delivered"
+                ? "bg-green-100 text-green-800"
+                : o.delivery_status === "cancelled"
+                ? "bg-red-100 text-red-800"
+                : "bg-blue-100 text-blue-800"
+            }`}
+          >
+            {o.delivery_status === "pending"
+              ? "To be Printed"
+              : o.delivery_status}
+          </span>
+        </td>
+
+        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+          {o.payment_status !== "paid" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // prevent row click
+                redirect(o);
+              }}
+              className="text-primary-600 hover:text-primary-900"
+            >
+              Pay Now
+            </button>
+          )}
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td
+        colSpan="5"
+        className="px-6 py-4 text-center text-sm text-gray-500"
+      >
+        No orders found
+      </td>
+    </tr>
+  )}
+</tbody>
+
                 </table>
               </div>
             </div>

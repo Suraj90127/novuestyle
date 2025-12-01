@@ -6,6 +6,7 @@ const sellerCustomerModel = require("../../models/chat/sellerCustomerModel");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
+const { log } = require("console");
 
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
@@ -41,9 +42,12 @@ class customerAuthController {
           email: createCustomer.email,
           method: createCustomer.method,
         });
-        res.cookie("customerToken", token, {
-          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        });
+      res.cookie("customerToken", token, {
+  httpOnly: true,
+  secure: false,       // localhost pe false, production https pe true
+  sameSite: "lax",     // agar alag domain use karoge to "none" + secure: true
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+});
         responseReturn(res, 201, { message: "Register success", token });
       }
     } catch (error) {
@@ -66,9 +70,12 @@ class customerAuthController {
             email: customer.email,
             method: customer.method,
           });
-          res.cookie("customerToken", token, {
-            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          });
+        res.cookie("customerToken", token, {
+        httpOnly: true,
+        secure: false,       // localhost pe false, production https pe true
+        sameSite: "lax",     // agar alag domain use karoge to "none" + secure: true
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
           responseReturn(res, 201, { message: "Login success", token });
         } else {
           responseReturn(res, 404, { error: "Password wrong" });
@@ -158,6 +165,40 @@ class customerAuthController {
 
     responseReturn(res, 200, { message: "Password updated successfully" });
   };
+
+//  import customerModel from "../models/customerModel.js";
+
+getCurrentUser = async (req, res) => {
+  try {
+    let { id } = req;
+
+    if (!id) {
+      return res.status(400).json({ error: "User ID missing" });
+    }
+
+    const customer = await customerModel
+      .findById(id)
+      .select("-password");
+
+    if (!customer) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = {
+      id: customer._id.toString(),
+      name: customer.name,
+      email: customer.email,
+      method: customer.method,
+      phone: customer.phone,
+    };
+
+    return res.status(200).json({ data: user });
+  } catch (error) {
+    console.log("Get current user error:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 }
 
 module.exports = new customerAuthController();

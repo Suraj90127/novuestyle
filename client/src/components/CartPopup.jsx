@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { customer_login } from "../store/reducers/authReducer";
+import { userDetail } from "../store/reducers/authReducer";
 
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,6 +14,7 @@ import {
   quantity_dec,
 } from "../store/reducers/cardReducer";
 import { toast } from "react-toastify";
+// import { userDetail } from './../store/reducers/authReducer';
 
 const CartPopup = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -27,8 +29,11 @@ const CartPopup = ({ onClose }) => {
     outofstock_products,
   } = useSelector((state) => state.card);
 
+  // useEffect(() => {
+  //   dispatch(customer_login());
+  // }, [dispatch]);
   useEffect(() => {
-    dispatch(customer_login());
+    dispatch(userDetail());
   }, [dispatch]);
 
   useEffect(() => {

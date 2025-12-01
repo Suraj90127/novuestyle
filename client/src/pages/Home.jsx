@@ -22,19 +22,12 @@ import RegisterModal from "../Authentication/Register";
 import ForgetModal from "../Authentication/ForgetPassword";
 import { Link, useNavigate } from "react-router-dom";
 import { getBanners } from "../store/reducers/bannerReducer";
-import SignNow from "../assets/T-shirtimg/Rectangle24.png";
-import University from "../assets/T-shirtimg/Rectangle25.png";
-import Award from "../assets/T-shirtimg/Rectangle26.png";
-import Sparonio from "../assets/T-shirtimg/Rectangle27.png";
-import U from "../assets/T-shirtimg/Rectangle28.png";
-import Coupen from "../components/Coupen";
 import Footwere from "../Home/Footwere";
 import DiwaliOffer from "../Home/DiwaliOffer";
 import Jewelary from "../Home/Jewelary";
-import BlogSlider from "../Home/BlogSlider";
-import { sendMetaEventSafe } from "../utils/sendMetaEvent";
 
-const images = [SignNow, University, Award, Sparonio, U];
+
+
 
 const Home = () => {
   const navigate = useNavigate();
@@ -65,7 +58,11 @@ const Home = () => {
     dispatch(userDetail())
     dispatch(get_category());
     dispatch(get_products());
+    
+    dispatch(userDetail());
+
     dispatch(customer_login());
+
     dispatch(getBanners());
   }, [dispatch]);
 
