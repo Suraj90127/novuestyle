@@ -1,8 +1,9 @@
 const authOrderModel = require("../../models/authOrder");
 const customerOrder = require("../../models/customerOrder");
+// const OrderCounter = require("../../models/orderCounterModel")
 const cardModel = require("../../models/cardModel");
-const myShopWallet = require("../../models/myShopWallet");
-const sellerWallet = require("../../models/sellerWallet");
+
+
 const uniqid = require("uniqid");
 const sha256 = require("sha256");
 const axios = require("axios");
@@ -37,6 +38,39 @@ const razorpay = new Razorpay({
   key_secret: "Rp6H246I7jMnWT41jxSvwS51",
 });
 
+const generateOrderId = async () => {
+  const lastOrder = await customerOrder
+    .findOne({})
+    .sort({ createdAt: -1 })
+    .select("new_order_id");
+
+  if (!lastOrder || !lastOrder.new_order_id) {
+    return "nvs98001"; // first order
+  }
+
+  const lastIdNum = parseInt(lastOrder.new_order_id.replace("nvs", ""), 10);
+  const nextId = lastIdNum + 1;
+
+  return `nvs${nextId}`;
+};
+
+
+// const regex = new RegExp(searchValue.trim(), "i");
+// filter.$and = [
+//   {
+//     $or: [
+//       { new_order_id: regex },
+//       { "products.name": regex },
+//       { "products.slug": regex },
+//       { "products.subCategory": regex },
+//       { "shippingInfo.name": regex },
+//       { "shippingInfo.phone": regex },
+//     ],
+//   },
+// ];
+
+
+
 class orderController {
   paymentCheck = async (id) => {
     try {
@@ -60,88 +94,180 @@ class orderController {
     }
   };
 
-  place_order = async (req, res) => {
-    const { price, products, shipping_fee, shippingInfo, userId } = req.body;
+  // place_order = async (req, res) => {
+  //   const { price, products, shipping_fee, shippingInfo, userId } = req.body;
 
-    let authorOrderData = [];
-    let cardId = [];
-    const tempDate = moment(Date.now()).format("LLL");
+  //   let authorOrderData = [];
+  //   let cardId = [];
+  //   const tempDate = moment(Date.now()).format("LLL");
 
-    let customerOrderProduct = [];
+  //   let customerOrderProduct = [];
 
-    // let color;
-    // let size;
+  //   // let color;
+  //   // let size;
+  //   for (let i = 0; i < products.length; i++) {
+  //     const pro = products[i].products;
+  //     // console.log("productsaaa", products[i].products);
+  //     // color = products[i].selectedColor;
+  //     // size = products[i].selectedSize;
+
+  //     for (let j = 0; j < pro.length; j++) {
+  //       let tempCusPro = pro[j].productInfo;
+  //       tempCusPro.quantity = pro[j].quantity;
+  //       tempCusPro.size = pro[j].size;
+  //       tempCusPro.color = pro[j].color;
+  //       customerOrderProduct.push(tempCusPro);
+  //       if (pro[j]._id) {
+  //         cardId.push(pro[j]._id);
+  //       }
+  //     }
+  //   }
+
+  //   try {
+  //     const order = await customerOrder.create({
+  //       customerId: userId,
+  //       shippingInfo,
+  //       products: customerOrderProduct,
+  //       price: price + shipping_fee,
+  //       delivery_status: "pending",
+  //       payment_status: "unpaid",
+  //       date: tempDate,
+  //     });
+  //     for (let i = 0; i < products.length; i++) {
+  //       // color = products[i]?.selectedColor;
+  //       // size = products[i]?.selectedSize;
+  //       const pro = products[i].products;
+  //       const pri = products[i].price;
+  //       const sellerId = products[i].sellerId;
+  //       let storePro = [];
+  //       for (let j = 0; j < pro.length; j++) {
+  //         let tempPro = pro[j].productInfo;
+  //         tempPro.quantity = pro[j].quantity;
+  //         tempPro.size = pro[j].size;
+  //         tempPro.color = pro[j].color;
+  //         storePro.push(tempPro);
+  //       }
+
+  //       // authorOrderData.push({ color: color, size: size });
+
+  //       authorOrderData.push({
+  //         orderId: order.id,
+  //         sellerId,
+  //         products: storePro,
+  //         price: price + shipping_fee,
+  //         payment_status: "unpaid",
+  //         shippingInfo,
+  //         delivery_status: "pending",
+  //         date: tempDate,
+  //       });
+  //     }
+  //     await authOrderModel.insertMany(authorOrderData);
+  //     for (let k = 0; k < cardId.length; k++) {
+  //       await cardModel.findByIdAndDelete(cardId[k]);
+  //     }
+  //     setTimeout(() => {
+  //       this.paymentCheck(order.id);
+  //     }, 15000);
+  //     responseReturn(res, 201, {
+  //       message: "order placeed success",
+  //       orderId: order.id,
+  //     });
+  //   } catch (error) {
+  //     console.log(error.message);
+  //   }
+  // };
+
+
+
+
+place_order = async (req, res) => {
+  const { price, products, shipping_fee, shippingInfo, userId } = req.body;
+
+  let authorOrderData = [];
+  let cardId = [];
+  const tempDate = moment(Date.now()).format("LLL");
+
+  let customerOrderProduct = [];
+
+  for (let i = 0; i < products.length; i++) {
+    const pro = products[i].products;
+
+    for (let j = 0; j < pro.length; j++) {
+      let tempCusPro = pro[j].productInfo;
+      tempCusPro.quantity = pro[j].quantity;
+      tempCusPro.size = pro[j].size;
+      tempCusPro.color = pro[j].color;
+      customerOrderProduct.push(tempCusPro);
+
+      if (pro[j]._id) {
+        cardId.push(pro[j]._id);
+      }
+    }
+  }
+
+  try {
+    // ⭐ get next order ID
+    const newOrderId = await generateOrderId();
+
+    // ⭐ create main customer order
+    const order = await customerOrder.create({
+      customerId: userId,
+      new_order_id: newOrderId,   // ← store here
+      shippingInfo,
+      products: customerOrderProduct,
+      price: price + shipping_fee,
+      delivery_status: "pending",
+      payment_status: "unpaid",
+      date: tempDate,
+    });
+
+    // ⭐ create seller orders
     for (let i = 0; i < products.length; i++) {
       const pro = products[i].products;
-      // console.log("productsaaa", products[i].products);
-      // color = products[i].selectedColor;
-      // size = products[i].selectedSize;
+      const sellerId = products[i].sellerId;
 
+      let storePro = [];
       for (let j = 0; j < pro.length; j++) {
-        let tempCusPro = pro[j].productInfo;
-        tempCusPro.quantity = pro[j].quantity;
-        tempCusPro.size = pro[j].size;
-        tempCusPro.color = pro[j].color;
-        customerOrderProduct.push(tempCusPro);
-        if (pro[j]._id) {
-          cardId.push(pro[j]._id);
-        }
+        let tempPro = pro[j].productInfo;
+        tempPro.quantity = pro[j].quantity;
+        tempPro.size = pro[j].size;
+        tempPro.color = pro[j].color;
+        storePro.push(tempPro);
       }
-    }
 
-    try {
-      const order = await customerOrder.create({
-        customerId: userId,
-        shippingInfo,
-        products: customerOrderProduct,
+      authorOrderData.push({
+        orderId: order.id,
+         new_order_id:newOrderId,   // ← store here
+        sellerId,
+        products: storePro,
         price: price + shipping_fee,
-        delivery_status: "pending",
         payment_status: "unpaid",
+        shippingInfo,
+        delivery_status: "pending",
         date: tempDate,
       });
-      for (let i = 0; i < products.length; i++) {
-        // color = products[i]?.selectedColor;
-        // size = products[i]?.selectedSize;
-        const pro = products[i].products;
-        const pri = products[i].price;
-        const sellerId = products[i].sellerId;
-        let storePro = [];
-        for (let j = 0; j < pro.length; j++) {
-          let tempPro = pro[j].productInfo;
-          tempPro.quantity = pro[j].quantity;
-          tempPro.size = pro[j].size;
-          tempPro.color = pro[j].color;
-          storePro.push(tempPro);
-        }
-
-        // authorOrderData.push({ color: color, size: size });
-
-        authorOrderData.push({
-          orderId: order.id,
-          sellerId,
-          products: storePro,
-          price: price + shipping_fee,
-          payment_status: "unpaid",
-          shippingInfo,
-          delivery_status: "pending",
-          date: tempDate,
-        });
-      }
-      await authOrderModel.insertMany(authorOrderData);
-      for (let k = 0; k < cardId.length; k++) {
-        await cardModel.findByIdAndDelete(cardId[k]);
-      }
-      setTimeout(() => {
-        this.paymentCheck(order.id);
-      }, 15000);
-      responseReturn(res, 201, {
-        message: "order placeed success",
-        orderId: order.id,
-      });
-    } catch (error) {
-      console.log(error.message);
     }
-  };
+
+    await authOrderModel.insertMany(authorOrderData);
+
+    for (let k = 0; k < cardId.length; k++) {
+      await cardModel.findByIdAndDelete(cardId[k]);
+    }
+
+    setTimeout(() => {
+      this.paymentCheck(order.id);
+    }, 15000);
+
+    responseReturn(res, 201, {
+      message: "order placed success",
+      order_number: newOrderId,
+      orderId: order.id,
+    });
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
 
   get_customer_databorad_data = async (req, res) => {
     const { userId } = req.params;
@@ -298,7 +424,7 @@ class orderController {
 
   get_seller_orders = async (req, res) => {
     const { sellerId } = req.params;
-    let { page = 1, parPage = 10, searchValue } = req.query;
+    let { page = 1, parPage = 10, searchValue = "" } = req.query;
 
     page = parseInt(page) || 1;
     parPage = parseInt(parPage) || 10;
@@ -314,11 +440,24 @@ class orderController {
       };
 
       // TODO: yahan baad me searchValue wala logic add kar sakte ho
-      if (searchValue) {
-        // example:
-        // const regex = new RegExp(searchValue, "i");
-        // filter.orderId = regex;
-      }
+      // Agar searchValue diya ho, to extra filter add karo
+    if (searchValue && searchValue.trim() !== "") {
+      const regex = new RegExp(searchValue.trim(), "i");
+
+      // Yahan define karo kis-kis field pe search karna hai
+      filter.$and = [
+        {
+          $or: [
+            { new_order_id: regex },         // nvs98002, etc.
+            { "products.name": regex },      // product name
+            { "products.slug": regex },      // product slug
+            { "products.subCategory": regex }, // Hoodie, T-shirt, etc.
+            { "shippingInfo.name": regex },  // customer name
+            { "shippingInfo.phone": regex }, // phone search
+          ],
+        },
+      ];
+    }
 
       const orders = await authOrderModel
         .find(filter)
@@ -335,46 +474,59 @@ class orderController {
     }
   };
 
-  get_seller_created_orders = async (req, res) => {
-    // const { sellerId } = req.params;
-    let { page = 1, parPage = 10 } = req.query;
 
-    page = parseInt(page) || 1;
-    parPage = parseInt(parPage) || 10;
+get_seller_created_orders = async (req, res) => {
+  let { page = 1, parPage = 10, searchValue = "" } = req.query;
 
-    const skipPage = parPage * (page - 1);
+  page = parseInt(page) || 1;
+  parPage = parseInt(parPage) || 10;
 
-    try {
-      // Common filter: same seller + unpaid payment OR unpaid codFee
-      const filter = {
+  const skipPage = parPage * (page - 1);
 
-        $or: [
-          { payment_status: "unpaid" },
-          { codFeeStatus: "unpaid" },
-        ],
-      };
+  try {
+    // Base filter: unpaid orders (payment OR COD fee)
+    const filter = {
+      $or: [
+        { payment_status: "unpaid" },
+        { codFeeStatus: "unpaid" },
+      ],
+    };
 
-      // Get orders + total in parallel
-      const [orders, totalOrder] = await Promise.all([
-        authOrderModel
-          .find(filter)
-          .skip(skipPage)
-          .limit(parPage)
-          .sort({ createdAt: -1 }),
+    // Agar searchValue diya ho, to extra filter add karo
+    if (searchValue && searchValue.trim() !== "") {
+      const regex = new RegExp(searchValue.trim(), "i");
 
-        authOrderModel.countDocuments(filter),
-      ]);
-
-      // console.log("orders", orders);
-
-
-      responseReturn(res, 200, { orders, totalOrder });
-    } catch (error) {
-      console.log("get seller order error " + error.message);
-      responseReturn(res, 500, { message: "internal server error" });
+      // Yahan define karo kis-kis field pe search karna hai
+      filter.$and = [
+        {
+          $or: [
+            { new_order_id: regex },         // nvs98002, etc.
+            { "products.name": regex },      // product name
+            { "products.slug": regex },      // product slug
+            { "products.subCategory": regex }, // Hoodie, T-shirt, etc.
+            { "shippingInfo.name": regex },  // customer name
+            { "shippingInfo.phone": regex }, // phone search
+          ],
+        },
+      ];
     }
-  };
 
+    const [orders, totalOrder] = await Promise.all([
+      authOrderModel
+        .find(filter)
+        .skip(skipPage)
+        .limit(parPage)
+        .sort({ createdAt: -1 }),
+
+      authOrderModel.countDocuments(filter),
+    ]);
+
+    responseReturn(res, 200, { orders, totalOrder });
+  } catch (error) {
+    console.log("get seller order error " + error.message);
+    responseReturn(res, 500, { message: "internal server error" });
+  }
+};
 
   get_seller_order = async (req, res) => {
     const { orderId } = req.params;

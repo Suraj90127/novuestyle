@@ -32,6 +32,7 @@ const ViewProduct = () => {
 
   useEffect(() => {
     dispatch(get_order(id));
+    dispatch(getShipping());
   }, [id]);
 
   const formatDate = (dateString) => {
@@ -48,6 +49,7 @@ const ViewProduct = () => {
       case "paid":
       case "delivered":
         return "bg-green-100 text-green-900 border-green-300";
+      case "unpaid":
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "cancelled":
@@ -59,6 +61,9 @@ const ViewProduct = () => {
     }
   };
 
+
+
+  
   console.log("myOrder",myOrder);
   
 
@@ -104,7 +109,7 @@ const ViewProduct = () => {
             <div className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Order ID</span>
-                <span className="font-mono text-gray-900">{myOrder._id}</span>
+                <span className="font-mono text-gray-900">{myOrder.new_order_id}</span>
               </div>
 
               <div className="flex justify-between text-sm">
@@ -130,7 +135,7 @@ const ViewProduct = () => {
               )}
 
               <div className="flex justify-between text-lg font-semibold">
-                <span className="text-gray-700">Total Amount</span>
+                <span className="text-gray-700">Total Pay Amount</span>
                 <span className="text-primary">₹ {myOrder.payment_status==="COD" ? myOrder.price-codFee:myOrder.price}</span>
               </div>
             </div>
@@ -155,8 +160,17 @@ const ViewProduct = () => {
                   {myOrder.payment_status?.toUpperCase()}
                 </span>
               </div>
-
-              {/* Delivery */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">COD Fee</span>
+                <span
+                  className={`px-3 py-1 text-sm font-medium border ${getStatusColor(
+                    myOrder.codFeeStatus
+                  )}`}
+                >
+                  {myOrder.codFeeStatus?.toUpperCase()}
+                </span>
+              </div>
+                 {/* Delivery */}
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">Delivery</span>
                 <span
@@ -167,6 +181,30 @@ const ViewProduct = () => {
                   {myOrder.delivery_status?.toUpperCase()}
                 </span>
               </div>
+              {myOrder?.remarks&&(
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Remarks</span>
+                <span
+                  className={`px-3 py-1 text-sm font-medium`}
+                >
+                  {myOrder?.remarks}
+                </span>
+              </div>
+              )}
+              {myOrder.trackingNumber&&(
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Tracking Number</span>
+                <span
+                  className={`px-3 py-1 text-sm font-medium  `}
+                >
+                  {myOrder.trackingNumber}
+                </span>
+              </div>
+              )}
+
+           
             </div>
           </div>
 

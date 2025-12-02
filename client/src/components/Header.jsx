@@ -41,7 +41,7 @@ const Header = () => {
   );
   const { products, categorys } = useSelector((state) => state.home);
 
-  // console.log("categorys on header", categorys);
+  // console.log("card_product_count on header", card_product_count);
 
   // refs
   const typewriterRef = useRef(null);
@@ -57,6 +57,9 @@ const Header = () => {
   const [isForgetModalOpen, setForgetModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isCartPopupOpen, setCartPopupOpen] = useState(false);
+
+  // console.log("isCartPopupOpen",isCartPopupOpen);
+  
   const [searchValue, setSearchValue] = useState("");
   const [showSearchMenu, setShowSearchMenu] = useState(false);
   const [filteredProductName, setFilteredProductName] = useState([]);
@@ -66,15 +69,24 @@ const Header = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hideTimeout, setHideTimeout] = useState(null);
 
+    const {
+      card_products,
+    } = useSelector((state) => state.card);
+
+    // console.log("card_products111111",card_products);
+    // console.log("userInfo222222222222",userInfo);
+  
+
   // initial fetches
   useEffect(() => {
     dispatch(userDetail())
     dispatch(get_category());
     dispatch(get_products());
+       dispatch(get_card_products(userInfo?.id));
   }, [dispatch]);
 
 
-    console.log("!userInfo._id",userInfo);
+    // console.log("!userInfo._id",userInfo);
 
   // fetch cart/wishlist when user logs in
   useEffect(() => {
@@ -247,6 +259,10 @@ const Header = () => {
       dispatch(user_reset());
       dispatch(reset_count());
       navigate("/");
+         // Force full page reload after navigation
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
     } catch (error) {
       toast.error(error.response.data);
     }
@@ -268,10 +284,13 @@ const Header = () => {
   return (
     <div className="fixed top-0 w-full z-[9999] flex flex-col">
       {/* Top blue marquee */}
-      <div className="h-[32px] overflow-hidden">
-        <marquee className="w-full bg-[#5987b8] text-white p-2 text-sm font-[400]">
-          {marqueeText}
-        </marquee>
+      <div className="h-[40px] overflow-hidden">
+        <marquee 
+                scrollamount="15"  // Increase this value for faster speed
+                className="w-full bg-[#5987b8] text-white p-2 text-md font-[500]"
+            >
+                {marqueeText}
+            </marquee>
       </div>
 
       {/* Main header */}
@@ -728,7 +747,7 @@ const Header = () => {
         />
       )}
 
-      {isCartPopupOpen && (
+      {isCartPopupOpen && card_product_count > 0 &&(
         <div ref={cartPopupRef} className="fixed right-4 top-20 z-50">
           <CartPopup onClose={toggleCartPopup} />
         </div>

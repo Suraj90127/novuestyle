@@ -36,7 +36,7 @@ export default function Component() {
   const { coupons, loader } = useSelector((state) => state.coupon);
   const { userInfo } = useSelector((state) => state.auth);
   const shippingFee = shipping?.shipping?.shipping_fee;
-  const [openAccordion, setOpenAccordion] = useState("desc");
+  const [openAccordion, setOpenAccordion] = useState(null);
   const [mainImage, setMainImage] = useState("");
   const swiperRef = useRef(null);
   const [isOpen, setIsOpen] = useState(null);

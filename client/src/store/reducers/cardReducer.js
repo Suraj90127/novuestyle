@@ -22,6 +22,9 @@ export const get_card_products = createAsyncThunk(
         `/home/product/get-card-product/${userId}`
       );
 
+      console.log("card product data", data);
+      
+
       return fulfillWithValue(data);
     } catch (error) {
       return rejectWithValue(error.response.data);

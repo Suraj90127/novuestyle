@@ -17,6 +17,9 @@ import { toast } from "react-toastify";
 // import { userDetail } from './../store/reducers/authReducer';
 
 const CartPopup = ({ onClose }) => {
+
+  // console.log("onClose",onClose);
+  
   const dispatch = useDispatch();
   const navegate = useNavigate();
   const { userInfo } = useSelector((state) => state.auth);
@@ -58,11 +61,17 @@ const CartPopup = ({ onClose }) => {
     });
   };
 
+  console.log("userInfo &&",card_products);
+  
+
   const cart = card_products.flatMap((temp) => temp.products);
   const cart_info = cart.flatMap((temp) => temp.productInfo);
 
+  console.log("cart_info0",cart_info);
+  
+
   return (
-    <div className="absolute md:top-16 sm:top-1 md:right-10 sm:-right-2 bg-white shadow-lg py-2 sm:w-[250px]  md:w-[300px] z-50">
+    <div className="absolute md:top-16 sm:top-3 md:right-10 sm:-right-4 bg-white shadow-lg py-2 sm:w-[250px]  md:w-[300px] z-50">
       <h2 className="text-lg font-semibold mb-2 px-4 pt-5">Your Cart</h2>
       {cart_info?.length === 0 ? (
         <p className="text-gray-500 px-4">Your cart is empty.</p>

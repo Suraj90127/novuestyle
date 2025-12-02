@@ -250,7 +250,7 @@ export default function Payment() {
                   <div className="text-gray-800 font-[600] text-sm">
                     <p>Cash on Delivery</p>
                     <p className="text-gray-600 text-xs mt-1">
-                      Extra ₹ {codFee} COD charge applies.
+                      Advance ₹ {codFee} COD charge applies.
                     </p>
                   </div>
                 </label>

@@ -117,7 +117,7 @@ const Footer = () => {
           </div>
           <div className="flex space-x-4 mt-4">
             <a
-              href="https://www.instagram.com"
+              href="https://www.instagram.com/novuestyle/"
               target="_blank"
               rel="noreferrer"
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#5987b8] hover:bg-gray-200 transition"
@@ -125,7 +125,7 @@ const Footer = () => {
               <FaInstagram size={18} />
             </a>
             <a
-              href="https://www.facebook.com"
+              href="https://www.facebook.com/profile.php?id=61583840398355"
               target="_blank"
               rel="noreferrer"
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#5987b8] hover:bg-gray-200 transition"
@@ -133,7 +133,7 @@ const Footer = () => {
               <FaFacebookF size={18} />
             </a>
             <a
-              href="https://wa.me/1234567890"
+              href="https://wa.me/8368704837"
               target="_blank"
               rel="noreferrer"
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#5987b8] hover:bg-gray-200 transition"

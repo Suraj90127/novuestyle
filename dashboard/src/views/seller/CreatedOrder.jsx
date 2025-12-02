@@ -22,6 +22,9 @@ const CreatedOrders = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [remarks, setRemarks] = useState("");
 
+  console.log("searchValue",searchValue);
+  
+
   useEffect(() => {
     dispatch(
       get_seller_created_orders({
@@ -161,7 +164,7 @@ const CreatedOrders = () => {
                     scope="row"
                     className="py-3 px-4 font-medium whitespace-nowrap flex flex-col"
                   >
-                    #{d._id?.slice(-6)}
+                    {d?.new_order_id}
                   </td>
 
                   <td

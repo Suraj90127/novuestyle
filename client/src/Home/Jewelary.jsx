@@ -15,17 +15,14 @@ import { getheadingfivth } from "../store/reducers/homeReducer";
 import { ChevronLeft, ChevronRight, Heart, Star } from "lucide-react";
 
 const Jewelary = ({ products, openLoginModal }) => {
+  console.log("productssssss",products);
+  
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
   const { categorys, fivthheading } = useSelector((state) => state.home);
   const { successMessage, errorMessage, wishlist } = useSelector(
     (state) => state.card
   );
-
-  const data = Array.isArray(fivthheading) ? fivthheading[0] : fivthheading;
-
-  const maincategory = data?.categorys[0].sslug || "SWEATSHIRT";
-  const maindata = products.filter((item) => item.subCategory === maincategory);
 
   const scrollContainerRef = useRef(null);
   const scroll = (direction, ref) => {
@@ -41,39 +38,6 @@ const Jewelary = ({ products, openLoginModal }) => {
     dispatch(getheadingfivth());
   }, [dispatch]);
 
-  // Helper function to simulate a random rating for products that don't have one
-  const getSimulatedRating = (name) => {
-    // Simple hash based on product name to give a consistent "simulated" rating
-    const hash = name
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return (4.0 + (hash % 6) / 10).toFixed(1); // Gives a rating between 4.0 and 4.5
-  };
-
-  const add_card = async (id) => {
-    // ... (Your existing add_card logic)
-    if (userInfo) {
-      try {
-        const response = await dispatch(
-          add_to_card({
-            userId: userInfo.id,
-            quantity: 1,
-            productId: id,
-          })
-        ).unwrap();
-
-        if (response.message) {
-          toast.success(response.message);
-          dispatch(messageClear());
-        }
-      } catch (error) {
-        toast.error(error.error || "An error occurred");
-        dispatch(messageClear());
-      }
-    } else {
-      openLoginModal();
-    }
-  };
 
   const add_wishlist = async (pro) => {
     // ... (Your existing add_wishlist logic)

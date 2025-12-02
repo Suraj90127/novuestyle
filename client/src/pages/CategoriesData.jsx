@@ -1,40 +1,45 @@
+
+
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import img5 from "../assets/DIWALI10_2100x.jpg";
-import { CiHeart } from "react-icons/ci";
 import MobileFooter from "../components/MobileFooter";
 import { useDispatch, useSelector } from "react-redux";
 import { get_category, get_products } from "../store/reducers/homeReducer";
-import { add_to_card, add_to_wishlist } from "../store/reducers/cardReducer";
+import { add_to_wishlist } from "../store/reducers/cardReducer";
 import { messageClear } from "../store/reducers/authReducer";
 import { toast } from "react-toastify";
 import LoginModal from "../Authentication/Login";
 import RegisterModal from "../Authentication/Register";
 import ForgetModal from "../Authentication/ForgetPassword";
-import { Link, useParams } from "react-router-dom";
-import { Heart, ShoppingCart, Star, ArrowRight } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Heart, Star, ShoppingCart, X } from "lucide-react";
 
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/autoplay";
-import { Navigation, Pagination, Autoplay } from "swiper/modules";
 
 const CategoriesData = () => {
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setRegisterModalOpen] = useState(false);
   const [isForgetModalOpen, setForgetModalOpen] = useState(false);
+  const [showComingSoonPopup, setShowComingSoonPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasDataLoaded, setHasDataLoaded] = useState(false);
+
+  // console.log("showComingSoonPopup",showComingSoonPopup);
+  // console.log("hasDataLoaded",hasDataLoaded);
+  
 
   const {
     products,
     categorys,
-    totalProduct,
-    latest_product,
-    priceRange,
-    parPage,
   } = useSelector((state) => state.home);
+
+  console.log("products",products);
+  
 
   const { successMessage, errorMessage, wishlist } = useSelector(
     (state) => state.card
@@ -43,8 +48,7 @@ const CategoriesData = () => {
 
   const dispatch = useDispatch();
   const { slug } = useParams();
-
-  // console.log("slug", slug);
+  const navigate = useNavigate();
 
   let img;
   let img2;
@@ -74,52 +78,33 @@ const CategoriesData = () => {
     img = "https://i.ibb.co/DP9vJ8c2/banner-12.png";
     img2 = "https://i.ibb.co/p6n2rCWp/banner-12-phone-size.png";
   }
-  useEffect(() => {
-    dispatch(get_products({ page: 1, limit: 500 }));
-  }, [dispatch]);
 
   useEffect(() => {
+    setIsLoading(true);
+    dispatch(get_products({ page: 1, limit: 500 }));
     dispatch(get_category());
   }, [dispatch]);
 
-  const normalizedSlug = slug.replace(/-/g, " ").toLowerCase();
+  // Check when data is loaded
+  useEffect(() => {
+    if (products.length > 0) {
+      setIsLoading(false);
+      setHasDataLoaded(true);
+      
+      // Check if products are empty for this category after data loads
+      setTimeout(() => {
+        if (firstHalfProducts.length === 0) {
+          setShowComingSoonPopup(true);
+        }
+      }, 200);
+    }
+  }, [products, categorys]);
 
-  const category_products = products.filter(
-    (product) => product.category?.toLowerCase() === normalizedSlug
-  );
+  const normalizedSlug = slug.replace(/-/g, " ").toLowerCase();
 
   const subcat = categorys.find(
     (cat) => cat.name.toLowerCase() === normalizedSlug
   );
-
-  // Get current category index
-  const currentCategoryIndex = categorys.findIndex(
-    (cat) => cat.name.toLowerCase() === normalizedSlug
-  );
-
-  // Get next category products for slider
-  const nextCategoryIndex = (currentCategoryIndex + 1) % categorys.length;
-  const nextCategory = categorys[nextCategoryIndex];
-  const nextCategoryProducts = products
-    .filter(
-      (product) =>
-        product.category?.toLowerCase() === nextCategory?.name?.toLowerCase()
-    )
-    .slice(0, 10); // Limit to 10 products for slider
-
-  const add_card = async (id) => {
-    dispatch(
-      add_to_card({
-        userId: userInfo.id,
-        quantity: 1,
-        productId: id,
-      })
-    ).then((res) => {
-      if (res.payload?.message) {
-        toast.success(res.payload.message);
-      }
-    });
-  };
 
   const add_wishlist = async (pro) => {
     try {
@@ -161,7 +146,6 @@ const CategoriesData = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  // console.log("products", products);
 
   let firstHalfProducts = [];
   if (slug === "Male" || slug === "Female") {
@@ -172,9 +156,137 @@ const CategoriesData = () => {
     );
   }
 
+
+  console.log("firstHalfProducts",firstHalfProducts);
+  
+
+  const handleShopNow = () => {
+    setShowComingSoonPopup(false);
+    navigate("/");
+  };
+
+  const handleClosePopup = () => {
+    setShowComingSoonPopup(false);
+  };
+
+  // Loading Skeleton Component
+  const ProductSkeleton = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+      <div className="relative">
+        <div className="w-full h-64 bg-gray-200"></div>
+        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-gray-300"></div>
+      </div>
+      <div className="p-4">
+        <div className="flex justify-between mb-2">
+          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+        <div className="h-5 bg-gray-200 rounded mb-3"></div>
+        <div className="space-y-2">
+          <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+          <div className="flex justify-between">
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <Header />
+
+      {/* Coming Soon Popup */}
+      {showComingSoonPopup && hasDataLoaded && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-[9999] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* Header */}
+            <div className="relative bg-gradient-to-r from-[#5987b8] to-[#2c5e93] p-6">
+              <button
+                onClick={handleClosePopup}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Coming Soon!</h2>
+                <p className="text-blue-100">
+                  Exciting products are on their way
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 text-center">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  {slug.replace(/-/g, " ")} Products
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  We're working on amazing {slug.replace(/-/g, " ")} products that will be available soon.
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Launch Progress</span>
+                  <span>75%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-[#5987b8] to-[#2c5e93]  h-2 rounded-full"
+                    style={{ width: '75%' }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleShopNow}
+                  className="bg-gradient-to-r from-[#5987b8] to-[#2c5e93]  text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>Shop Other Products</span>
+                </button>
+              </div>
+
+              {/* Newsletter */}
+              {/* <div className="mt-6 pt-6 border-t border-gray-200">
+                <p className="text-sm text-gray-600 mb-3">
+                  Get notified when we launch
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors whitespace-nowrap">
+                    Notify Me
+                  </button>
+                </div>
+              </div> */}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-28">
         <div className="hidden md:block">
@@ -184,55 +296,126 @@ const CategoriesData = () => {
           <img src={img2} alt="banner" className="w-full h-full" />
         </div>
 
-        {/* Sub Categories Section */}
-        {subcat?.subCategory.length > 0 && (
-          <div className="w-full md:w-[90%] lg:w-[90%] mx-auto p-1 md:p-6 mt-4">
-            <h3 className="text-xl md:text-4xl font-semibold text-heading text-center mb-4">
-              Sub Categories
-            </h3>
-            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-6">
-              {subcat?.subCategory?.map((item, index) => (
-                <div key={index}>
-                  <Link to={`/sub-category-data/${slug}/${item.sslug}`}>
-                    <div className="text-center">
-                      <div className="h-auto w-auto overflow-hidden relative">
-                        <img
-                          src={item.simage}
-                          alt={item.sname}
-                          className="mx-auto w-full rounded-md "
-                        />
-                        <p className="text-black text-[14px]">{item.sname}</p>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              ))}
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="w-full md:w-[90%] lg:w-[90%] mx-auto p-6">
+            <div className="text-center mb-8">
+              <div className="h-10 bg-gray-200 rounded-lg w-48 mx-auto mb-4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-64 mx-auto animate-pulse"></div>
             </div>
-          </div>
-        )}
 
-        {/* Products Section - First 15 Products */}
-        <div className="w-full mx-auto md:px-2 py-3">
-          <h3 className="text-xl md:text-4xl font-semibold text-heading text-center mb-4">
-            Products
-          </h3>
-          <div className="w-full md:w-[90%] lg:w-[90%] mx-auto p-1 md:p-6 mt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1 md:gap-6">
-              {firstHalfProducts
-                .slice()
-                .reverse()
-                .map((p, i) => (
-                  <ProductCard
-                    key={i}
-                    product={p}
-                    add_wishlist={add_wishlist}
-                    isInWishlist={isInWishlist}
-                    setHoveredProduct={setHoveredProduct}
-                  />
+            {/* Loading Skeleton for Sub Categories */}
+            <div className="mb-12">
+              <div className="h-8 bg-gray-200 rounded w-40 mb-6 mx-auto animate-pulse"></div>
+              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                  </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Loading Skeleton for Products */}
+            <div>
+              <div className="h-10 bg-gray-200 rounded-lg w-48 mx-auto mb-8 animate-pulse"></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Sub Categories Section */}
+            {subcat?.subCategory?.length > 0 && (
+              <div className="w-full md:w-[90%] lg:w-[90%] mx-auto p-1 md:p-6 mt-4">
+                <h3 className="text-xl md:text-4xl font-semibold text-heading text-center mb-4">
+                  Sub Categories
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-6">
+                  {subcat.subCategory.map((item, index) => (
+                    <div key={index}>
+                      <Link to={`/sub-category-data/${slug}/${item.sslug}`}>
+                        <div className="text-center">
+                          <div className="h-auto w-auto overflow-hidden relative">
+                            <img
+                              src={item.simage}
+                              alt={item.sname}
+                              className="mx-auto w-full rounded-md "
+                            />
+                            <p className="text-black text-[14px] mt-2">{item.sname}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Products Section */}
+            <div className="w-full mx-auto md:px-2 py-3">
+              <h3 className="text-xl md:text-4xl font-semibold text-heading text-center mb-4">
+                Products
+              </h3>
+              
+              {firstHalfProducts.length > 0 ? (
+                <div className="w-full md:w-[90%] lg:w-[90%] mx-auto p-1 md:p-6 mt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1 md:gap-6">
+                    {firstHalfProducts
+                      .slice()
+                      .reverse()
+                      .map((p, i) => (
+                        <ProductCard
+                          key={i}
+                          product={p}
+                          add_wishlist={add_wishlist}
+                          isInWishlist={isInWishlist}
+                          setHoveredProduct={setHoveredProduct}
+                        />
+                      ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="max-w-md mx-auto">
+                    <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-16 h-16 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                      No Products Available
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      Currently no {slug.replace(/-/g, " ")} products are available.
+                    </p>
+                    <button
+                      onClick={handleShopNow}
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-[#5987b8] to-[#2c5e93] text-white py-3 px-8 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>Explore Other Products</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {isLoginModalOpen && (
@@ -256,11 +439,39 @@ const CategoriesData = () => {
       )}
       <Footer />
       <MobileFooter />
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 };
 
-// Product Card Component for reusability
+// Product Card Component (same as before)
 const ProductCard = ({
   product,
   add_wishlist,
@@ -308,12 +519,10 @@ const ProductCard = ({
       </div>
 
       <div className="p-4">
-        {/* Category */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
             {product.category}
           </span>
-          {/* Rating */}
           {product.rating > 0 && (
             <div className="flex items-center gap-1">
               <Star className="w-3 h-3 text-yellow-400 fill-current" />
@@ -324,14 +533,12 @@ const ProductCard = ({
           )}
         </div>
 
-        {/* Product Name */}
         <Link to={`/product/details/${product.slug}`}>
           <h3 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-1 hover:text-blue-600 transition-colors leading-tight">
             {product.name}
           </h3>
         </Link>
 
-        {/* Price Section */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="md:text-lg font-bold text-gray-900">
@@ -346,7 +553,6 @@ const ProductCard = ({
             )}
           </div>
 
-          {/* Savings */}
           {product.discount > 0 && (
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">

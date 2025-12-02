@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { getheadingsecond } from "../store/reducers/homeReducer";
 
-const Eveleye = ({ products, openLoginModal, categorys }) => {
+const Eveleye = ({ categorys }) => {
   const dispatch = useDispatch();
   // Assuming the data structure from your reducer gives you the category collection
   // structure similar to the image (e.g., Hoodies, T-Shirts, etc.)
