@@ -15,19 +15,20 @@ import Cookies from "js-cookie";
 import { MdLock, MdEdit, MdDelete } from "react-icons/md";
 import { FaShoppingCart } from "react-icons/fa";
 import { sendMetaEventSafe } from "../utils/sendMetaEvent";
+import CheckoutLoginPopup from "./CheckoutLoginPopup";
 
 // --------------------------------------------------------
 // Order Summary Component (same design as screenshot)
 // --------------------------------------------------------
+
 function OrderSummary({ price, items, products, shipping_fee }) {
-  const [open, setOpen] = useState(false);
+  const cartItems = Array.isArray(products) ? products : [];
 
-  console.log("shipping_fee", shipping_fee);
-
+  // console.log("products11", cartItems);
+  // console.log("shipping_fee", shipping_fee);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-      {/* Header */}
       <div className="justify-between items-center p-4 cursor-pointer">
         <div className="flex justify-between pb-2">
           <h2 className="text-[17px] flex text-gray-700 ">
@@ -40,47 +41,47 @@ function OrderSummary({ price, items, products, shipping_fee }) {
         </div>
 
         <div className="border-t border-gray-200">
-          {products?.map((shop, i) => (
-            <div key={i} className="my-4">
-              {shop.products.map((p, j) => {
-                const discounted =
-                  p.productInfo.price -
-                  Math.floor(
-                    (p.productInfo.price * p.productInfo.discount) / 100
-                  );
+          {cartItems.map((item, i) => {
+            // original MRP backend product se
+            const mrp = item.product?.price ?? item.price ?? 0;
+            // discounted price jo tumne cookie me store ki hai
+            const discounted = item.price ?? mrp;
+            const imgSrc =
+              item.image || item.product?.images?.[0]?.url || "";
 
-                return (
-                  <div
-                    key={j}
-                    className="flex md:gap-16 sm:gap-5 border border-gray-200 rounded-lg mb-2"
-                  >
-                    <img
-                      src={p.productInfo.images[0].url}
-                      className="sm:w-24 sm:h-24 md:w-36 md:h-36 rounded-md border object-cover"
-                    />
+            return (
+              <div key={i} className="my-4">
+                <div className="flex md:gap-16 sm:gap-5 border border-gray-200 rounded-lg mb-2">
+                  <img
+                    src={imgSrc}
+                    alt={item.name}
+                    className="sm:w-24 sm:h-24 md:w-36 md:h-36 rounded-md border object-cover"
+                  />
 
-                    <div className="flex flex-col gap-2 sm:gap-0 mt-2">
-                      <p className="font-medium text-gray-800 text-sm line-clamp-1">
-                        {p.productInfo.name}
+                  <div className="flex flex-col gap-2 sm:gap-0 mt-2">
+                    <p className="font-medium text-gray-800 text-sm line-clamp-1">
+                      {item.name}
+                    </p>
+
+                    <div className="flex gap-2 items-center">
+                      <p className="font-normal text-gray-700 text-base">
+                        ₹{discounted}
                       </p>
-                      <div className="flex gap-2">
-                        <p className="font-normal text-gray-700 text-base">
-                          ₹{discounted}
-                        </p>
+                      {mrp && mrp !== discounted && (
                         <p className="line-through text-gray-400 text-base font-light">
-                          ₹{p.productInfo.price}
+                          ₹{mrp}
                         </p>
-                      </div>
-
-                      <p className="font-light text-gray-700 text-base">
-                        {p.color} / {p.size}
-                      </p>
+                      )}
                     </div>
+
+                    <p className="font-light text-gray-700 text-base">
+                      {item.color} / {item.size} &nbsp; × {item.quantity}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="font-normal text-md space-y-2 bg-gray-200 p-4 rounded-md">
@@ -94,13 +95,15 @@ function OrderSummary({ price, items, products, shipping_fee }) {
           </p>
           <p className="flex justify-between">
             <span className="">Total</span>
-            <span className="">₹ {price + shipping_fee || 0}</span>
+            <span className="">₹ {(price || 0) + (shipping_fee || 0)}</span>
           </p>
         </div>
       </div>
     </div>
   );
 }
+
+
 
 // --------------------------------------------------------
 // Address Form Component
@@ -377,6 +380,9 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const { userInfo } = useSelector((state) => state.auth);
 
+  // console.log("user",userInfo);
+  
+
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setRegisterModalOpen] = useState(false);
   const [isForgetModalOpen, setForgetModalOpen] = useState(false);
@@ -390,6 +396,9 @@ export default function CheckoutPage() {
   const {
     state: { products, price, shipping_fee, items },
   } = useLocation();
+
+  // console.log("products, price, shipping_fee, items",products, price, shipping_fee, items);
+  
 
   // Load addresses for current user on component mount
   useEffect(() => {
@@ -516,64 +525,160 @@ export default function CheckoutPage() {
     setErrors({});
   };
 
-  const placeOrderNow = () => {
-    if (!selectedAddress) {
-      toast.error("Please select a shipping address");
-      return;
+//   const placeOrderNow = () => {
+//     if (!selectedAddress) {
+//       toast.error("Please select a shipping address");
+//       return;
+//     }
+
+//     if (!validateForm(selectedAddress)) {
+//       const firstErrorField = Object.keys(errors)[0];
+//       const el = document.querySelector(`[name="${firstErrorField}"]`);
+//       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+//       return;
+//     }
+
+//     dispatch(
+//       place_order({
+//         price,
+//         products,
+//         shipping_fee,
+//         shippingInfo: selectedAddress,
+//         userId: userInfo.id,
+//         navigate,
+//         items,
+//       })
+//     );
+
+//    sendMetaEventSafe({
+//   eventType: "InitiateCheckout",
+//   price: price + shipping_fee,
+//   order: products,   // pura cart pass kar do
+//   products: products,
+//   userInfo: userInfo,
+//  });
+
+//   };
+
+  
+const CART_KEY = "guestCart";
+const placeOrderNow = () => {
+  if (!selectedAddress) {
+    toast.error("Please select a shipping address");
+    return;
+  }
+
+  if (!validateForm(selectedAddress)) {
+    const firstErrorField = Object.keys(errors)[0];
+    const el = document.querySelector(`[name="${firstErrorField}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  // Dispatch the order with .unwrap() to handle promise
+  dispatch(
+    place_order({
+      price,
+      products,
+      shipping_fee,
+      shippingInfo: selectedAddress,
+      userId: userInfo.id,
+      navigate,
+      items,
+    })
+  )
+  .unwrap() // This gives you the promise result
+  .then((result) => {
+    console.log("Order placed successfully:", result);
+    
+    // Clear cart from cookies after successful order
+    try {
+      // Clear the main cart cookie
+      Cookies.remove('guestCart');
+      
+      // Also clear any other cart-related cookies
+      Cookies.remove('cartTotal');
+      Cookies.remove('cartCount');
+      
+      console.log("Cart cookies cleared after successful order");
+    
+      // Dispatch an action to clear cart from Redux state if you're using it
+      // dispatch(clearCartFromState());
+      
+    } catch (cookieError) {
+      console.error("Error clearing cart cookies:", cookieError);
     }
-
-    if (!validateForm(selectedAddress)) {
-      const firstErrorField = Object.keys(errors)[0];
-      const el = document.querySelector(`[name="${firstErrorField}"]`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-
-    dispatch(
-      place_order({
-        price,
-        products,
-        shipping_fee,
-        shippingInfo: selectedAddress,
-        userId: userInfo.id,
-        navigate,
-        items,
-      })
-    );
-
+    
+    // Show success message
+    toast.success(result.message || "Order placed successfully!");
+    
+    // Send Meta event for Purchase (not just InitiateCheckout)
     sendMetaEventSafe({
-      eventType: "InitiateCheckout",
+      eventType: "Purchase",
       price: price + shipping_fee,
-      order: products[0].products,
+      order: products,
       products: products,
       userInfo: userInfo,
     });
-  };
+    
+    // Navigate to payment or order confirmation page
+    if (result.redirectTo) {
+      navigate(result.redirectTo);
+    } else if (result.orderId) {
+      navigate(`/payment/${result.orderId}`);
+    }
+    
+  })
+  .catch((error) => {
+    console.error("Order placement failed:", error);
+    
+    // Show error message
+    toast.error(error?.error || "Failed to place order. Please try again.");
+    
+    // Send Meta event for failed checkout
+    sendMetaEventSafe({
+      eventType: "AddPaymentInfo",
+      price: price + shipping_fee,
+      order: products,
+      products: products,
+      userInfo: userInfo,
+      success: false
+    });
+  });
 
-  useEffect(() => {
+  // Send Meta event for InitiateCheckout (this happens regardless of success/failure)
+  sendMetaEventSafe({
+    eventType: "InitiateCheckout",
+    price: price + shipping_fee,
+    order: products,
+    products: products,
+    userInfo: userInfo,
+  });
+};
+
+
+useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   // console.log("userInfo on checkout page",userInfo);
   
 
-  // Show login prompt if user is not logged in
+
+
   if (!userInfo) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4">Login Required</h2>
-          <p className="text-gray-600 mb-6">Please login to manage your addresses and proceed with checkout.</p>
-          <button
-            onClick={() => setLoginModalOpen(true)}
-            className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
-          >
-            Login Now
-          </button>
-        </div>
-      </div>
-    );
-  }
+     const cartItems = Array.isArray(products) ? products : [];
+
+  // console.log("products11", cartItems);
+  // console.log("shipping_fee", shipping_fee);
+  return (
+    <CheckoutLoginPopup
+      onLogin={() => setLoginModalOpen(true)}  
+      product={cartItems}
+      shipping_fee={shipping_fee}
+    />
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">

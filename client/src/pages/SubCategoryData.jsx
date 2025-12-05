@@ -5,8 +5,6 @@ import Footer from "../components/Footer";
 import img5 from "../assets/DIWALI10_2100x.jpg";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  get_category,
-  get_products,
   getSubCatData,
 } from "../store/reducers/homeReducer";
 import { add_to_card, add_to_wishlist } from "../store/reducers/cardReducer";
@@ -29,16 +27,13 @@ const SubCategoriesData = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasDataLoaded, setHasDataLoaded] = useState(false);
 
-    console.log("showComingSoonPopup1",showComingSoonPopup1);
-  console.log("hasDataLoaded",hasDataLoaded);
-
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
   const { categorys, subData } = useSelector((state) => state.home);
-  const { successMessage, errorMessage, wishlist } = useSelector(
+  const {wishlist } = useSelector(
     (state) => state.card
   );
   const { userInfo } = useSelector((state) => state.auth);
@@ -56,26 +51,20 @@ const SubCategoriesData = () => {
     dispatch(getSubCatData({ category, slug, page, limit }));
   }, [dispatch, category, slug, page]);
 
-  console.log("subdata",subData);
   
 
   // Check when data is loaded
  useEffect(() => {
-  console.log("subData.length", subData.length);
-  console.log("hasDataLoaded1223",hasDataLoaded)
   if (subData.length > 0) { // Only if there are products
-    console.log("Data loaded with products");
     setIsLoading(false);
     setHasDataLoaded(true);
     setShowComingSoonPopup1(false); // Hide popup if products exist
   } else if (subData.length === 0) { // Empty but first load
-    console.log("Data loaded but empty");
     setIsLoading(false);
     setHasDataLoaded(true);
     
     // Show popup only if data is empty AND this is the first load
     if (subData.length === 0) {
-      console.log("Showing coming soon popup");
       setShowComingSoonPopup1(true);
     }
   }

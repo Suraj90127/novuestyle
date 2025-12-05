@@ -163,22 +163,18 @@ const ViewProduct = () => {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">COD Fee</span>
                 <span
-                  className={`px-3 py-1 text-sm font-medium border ${getStatusColor(
-                    myOrder.codFeeStatus
-                  )}`}
+                  className={`px-3 py-1 text-sm font-medium `}
                 >
-                  {myOrder.codFeeStatus?.toUpperCase()}
+                  {myOrder.codFeeStatus}
                 </span>
               </div>
                  {/* Delivery */}
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">Delivery</span>
                 <span
-                  className={`px-3 py-1 text-sm font-medium border ${getStatusColor(
-                    myOrder.delivery_status
-                  )}`}
+                  className={`px-3 py-1 text-sm font-medium  `}
                 >
-                  {myOrder.delivery_status?.toUpperCase()}
+                  {myOrder.delivery_status}
                 </span>
               </div>
               {myOrder?.remarks&&(
@@ -252,7 +248,7 @@ const ViewProduct = () => {
                 >
                   {/* Image */}
                   <img
-                    src={product.images[0].url}
+                    src={product.image}
                     alt={product.name}
                     className="w-24 h-24 object-cover border border-gray-400"
                   />

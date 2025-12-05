@@ -10,6 +10,8 @@ const axios = require("axios");
 const Crypto = require("crypto");
 const Razorpay = require("razorpay");
 
+
+
 const {
   mongo: { ObjectId },
 } = require("mongoose");
@@ -178,95 +180,395 @@ class orderController {
   // };
 
 
-
-
 place_order = async (req, res) => {
-  const { price, products, shipping_fee, shippingInfo, userId } = req.body;
+  const { price, products, shipping_fee, shippingInfo, userId, items } = req.body;
 
-  let authorOrderData = [];
-  let cardId = [];
-  const tempDate = moment(Date.now()).format("LLL");
-
-  let customerOrderProduct = [];
-
-  for (let i = 0; i < products.length; i++) {
-    const pro = products[i].products;
-
-    for (let j = 0; j < pro.length; j++) {
-      let tempCusPro = pro[j].productInfo;
-      tempCusPro.quantity = pro[j].quantity;
-      tempCusPro.size = pro[j].size;
-      tempCusPro.color = pro[j].color;
-      customerOrderProduct.push(tempCusPro);
-
-      if (pro[j]._id) {
-        cardId.push(pro[j]._id);
-      }
-    }
-  }
+  console.log("Received order data:", {
+    price,
+    shipping_fee,
+    userId,
+    items,
+    shippingInfo,
+    productsCount: products?.length
+  });
 
   try {
-    // ⭐ get next order ID
+    // Validate required fields
+    if (!userId) {
+      return responseReturn(res, 400, { error: "User ID is required" });
+    }
+
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return responseReturn(res, 400, { error: "No products in order" });
+    }
+
+    if (!shippingInfo || !shippingInfo.name || !shippingInfo.phone || !shippingInfo.address) {
+      return responseReturn(res, 400, { error: "Shipping information is incomplete" });
+    }
+
+    // Generate order ID
     const newOrderId = await generateOrderId();
+    const tempDate = moment(Date.now()).format("LLL");
 
-    // ⭐ create main customer order
-    const order = await customerOrder.create({
-      customerId: userId,
-      new_order_id: newOrderId,   // ← store here
-      shippingInfo,
-      products: customerOrderProduct,
-      price: price + shipping_fee,
-      delivery_status: "pending",
-      payment_status: "unpaid",
-      date: tempDate,
-    });
+    // Prepare customer order products
+    let customerOrderProducts = [];
+    let totalOrderPrice = 0;
+    let groupedBySeller = {};
 
-    // ⭐ create seller orders
+    // Process each product in cart
     for (let i = 0; i < products.length; i++) {
-      const pro = products[i].products;
-      const sellerId = products[i].sellerId;
+      const product = products[i];
+      
+      console.log(`Processing product ${i + 1}:`, {
+        name: product.name,
+        productId: product.productId,
+        quantity: product.quantity,
+        price: product.price,
+        sellerId: product.product?.sellerId
+      });
 
-      let storePro = [];
-      for (let j = 0; j < pro.length; j++) {
-        let tempPro = pro[j].productInfo;
-        tempPro.quantity = pro[j].quantity;
-        tempPro.size = pro[j].size;
-        tempPro.color = pro[j].color;
-        storePro.push(tempPro);
+      // Validate product data
+      if (!product.productId || !product.quantity || !product.price) {
+        console.error(`Invalid product data at index ${i}:`, product);
+        continue;
       }
 
-      authorOrderData.push({
-        orderId: order.id,
-         new_order_id:newOrderId,   // ← store here
+      // Calculate item total
+      const itemTotal = product.price * product.quantity;
+      totalOrderPrice += itemTotal;
+
+      // Prepare product for customer order with all required fields
+      const customerProduct = {
+        productId: product.productId,
+        name: product.name || product.product?.name || 'Unknown Product',
+        slug: product.slug || product.product?.slug || '',
+        image: product.image || (product.product?.images?.[0]?.url) || '',
+        price: product.price,
+        quantity: product.quantity,
+        color: product.color || '',
+        size: product.size || '',
+        sellerId: product.product?.sellerId || 'unknown',
+        shopName: product.product?.shopName || 'Unknown Shop',
+        originalPrice: product.product?.price || product.price * 2,
+        discount: product.product?.discount || 0,
+        // Additional product details
+        category: product.product?.category || '',
+        subCategory: product.product?.subCategory || '',
+        gender: product.product?.gender || 'Unisex',
+        design: product.product?.design || '',
+        fabric: product.product?.fabric || '',
+        section: product.product?.section || 0,
+        rating: product.product?.rating || 0,
+        stock: product.product?.stock || 0
+      };
+
+      customerOrderProducts.push(customerProduct);
+
+      // Group products by seller for seller orders
+      const sellerId = product.product?.sellerId || 'unknown';
+      
+      if (!groupedBySeller[sellerId]) {
+        groupedBySeller[sellerId] = {
+          sellerId: sellerId,
+          shopName: product.product?.shopName || 'Unknown Shop',
+          products: [],
+          totalPrice: 0,
+          shippingFee: 0, // Initialize shipping fee for each seller
+          shippingWeight: 0
+        };
+      }
+
+      // Add product to seller's group
+      groupedBySeller[sellerId].products.push(customerProduct);
+      groupedBySeller[sellerId].totalPrice += itemTotal;
+      
+      // Calculate shipping weight (optional - based on quantity)
+      groupedBySeller[sellerId].shippingWeight += product.quantity;
+    }
+
+    // Calculate shipping fee distribution
+    const totalShippingFee = shipping_fee || 0;
+    let remainingShippingFee = totalShippingFee;
+    
+    // Distribute shipping fee among sellers based on their order value
+    const sellerCount = Object.keys(groupedBySeller).length;
+    
+    if (sellerCount > 0) {
+      // Option 1: Equal distribution
+      // const shippingPerSeller = totalShippingFee / sellerCount;
+      
+      // Option 2: Proportional distribution based on order value
+      Object.keys(groupedBySeller).forEach(sellerId => {
+        const sellerData = groupedBySeller[sellerId];
+        const sellerPercentage = (sellerData.totalPrice / totalOrderPrice) * 100;
+        sellerData.shippingFee = Math.round((totalShippingFee * sellerPercentage) / 100);
+        remainingShippingFee -= sellerData.shippingFee;
+      });
+      
+      // Handle any remaining shipping fee due to rounding
+      if (remainingShippingFee !== 0 && Object.keys(groupedBySeller).length > 0) {
+        const firstSellerId = Object.keys(groupedBySeller)[0];
+        groupedBySeller[firstSellerId].shippingFee += remainingShippingFee;
+      }
+    }
+
+    // Add shipping fee to total order price
+    totalOrderPrice += totalShippingFee;
+
+    console.log("Order Summary:", {
+      productsCount: customerOrderProducts.length,
+      subtotal: totalOrderPrice - totalShippingFee,
+      totalOrderPrice,
+      shipping_fee: totalShippingFee,
+      sellersCount: sellerCount,
+      orderId: newOrderId,
+      shippingDistribution: Object.keys(groupedBySeller).map(sellerId => ({
         sellerId,
-        products: storePro,
-        price: price + shipping_fee,
-        payment_status: "unpaid",
+        totalPrice: groupedBySeller[sellerId].totalPrice,
+        shippingFee: groupedBySeller[sellerId].shippingFee
+      }))
+    });
+
+    // Create main customer order
+    const order = await customerOrder.create({
+      customerId: userId,
+      new_order_id: newOrderId,
+      shippingInfo,
+      products: customerOrderProducts,
+      price: totalOrderPrice,
+      subtotal: price, // Cart subtotal without shipping
+      shippingFee: totalShippingFee,
+      itemsCount: items || customerOrderProducts.reduce((sum, p) => sum + p.quantity, 0),
+      delivery_status: "pending",
+      payment_status: "pending",
+      payment_method: "pending",
+      date: tempDate,
+      orderStatus: "placed"
+    });
+
+    console.log("Customer order created:", order._id);
+
+    // Create seller orders with shipping fee included
+    let authorOrderData = [];
+    const sellerIds = Object.keys(groupedBySeller);
+
+    for (const sellerId of sellerIds) {
+      const sellerData = groupedBySeller[sellerId];
+      
+      // Seller order includes product price + their portion of shipping fee
+      const sellerTotalPrice = sellerData.totalPrice + (sellerData.shippingFee || 0);
+      
+      const sellerOrder = {
+        orderId: order._id,
+        customerOrderId: order._id,
+        new_order_id: newOrderId,
+        sellerId: sellerData.sellerId,
+        shopName: sellerData.shopName,
+        products: sellerData.products,
+        price: sellerTotalPrice, // Product price + shipping fee portion
+        subtotal: sellerData.totalPrice, // Product price only
+        shippingFee: sellerData.shippingFee || 0,
+        customerId: userId,
         shippingInfo,
         delivery_status: "pending",
+        payment_status: "pending",
         date: tempDate,
-      });
+        orderStatus: "placed"
+      };
+
+      authorOrderData.push(sellerOrder);
     }
 
-    await authOrderModel.insertMany(authorOrderData);
-
-    for (let k = 0; k < cardId.length; k++) {
-      await cardModel.findByIdAndDelete(cardId[k]);
+    if (authorOrderData.length > 0) {
+      await authOrderModel.insertMany(authorOrderData);
+      console.log(`Created ${authorOrderData.length} seller orders with shipping distribution`);
     }
 
-    setTimeout(() => {
-      this.paymentCheck(order.id);
-    }, 15000);
+    // Update product stock
+    for (const product of products) {
+      try {
+        // Find the product in database
+        const dbProduct = await productModel.findById(product.productId);
+        if (dbProduct) {
+          // Decrease stock
+          const newStock = dbProduct.stock - product.quantity;
+          await productModel.findByIdAndUpdate(
+            product.productId,
+            { stock: newStock >= 0 ? newStock : 0 },
+            { new: true }
+          );
+          console.log(`Updated stock for ${dbProduct.name}: ${dbProduct.stock} -> ${newStock}`);
+        }
+      } catch (stockError) {
+        console.error(`Error updating stock for product ${product.productId}:`, stockError.message);
+      }
+    }
 
+    // Cart is stored in cookies, no need to delete from database
+    console.log(`Order placed for user ${userId}. Cart will be cleared from frontend cookies.`);
+
+    // Generate payment data
+    const paymentData = {
+      orderId: order._id.toString(),
+      orderNumber: newOrderId,
+      amount: totalOrderPrice,
+      customerId: userId,
+      customerName: shippingInfo.name,
+      customerPhone: shippingInfo.phone,
+      customerEmail: shippingInfo.email || '',
+      products: customerOrderProducts.map(p => ({
+        name: p.name,
+        quantity: p.quantity,
+        price: p.price,
+        color: p.color,
+        size: p.size,
+        category: p.category,
+        subCategory: p.subCategory
+      }))
+    };
+
+    console.log("Payment data prepared:", paymentData);
+
+    // Return success response
     responseReturn(res, 201, {
-      message: "order placed success",
+      success: true,
+      message: "Order placed successfully",
       order_number: newOrderId,
-      orderId: order.id,
+      orderId: order._id,
+      clearCart: true, // Flag to tell frontend to clear cookies
+      paymentData: paymentData,
+      redirectTo: `/payment/${order._id}`,
+      orderDetails: {
+        totalAmount: totalOrderPrice,
+        subtotal: totalOrderPrice - totalShippingFee,
+        shippingFee: totalShippingFee,
+        itemsCount: order.itemsCount,
+        shippingAddress: shippingInfo,
+        estimatedDelivery: moment().add(7, 'days').format("LL"),
+        products: customerOrderProducts.map(p => ({
+          name: p.name,
+          quantity: p.quantity,
+          price: p.price,
+          color: p.color,
+          size: p.size
+        }))
+      }
     });
+
+    // Start payment verification after delay
+    setTimeout(async () => {
+      try {
+        await paymentCheck(order._id);
+      } catch (error) {
+        console.error("Payment check error:", error.message);
+      }
+    }, 30000); // Check after 30 seconds
+
   } catch (error) {
-    console.log(error.message);
+    console.error("Order placement error:", error.message);
+    console.error("Stack trace:", error.stack);
+    
+    responseReturn(res, 500, { 
+      error: "Failed to place order",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
+
+
+
+// place_order = async (req, res) => {
+//   const { price, products, shipping_fee, shippingInfo, userId } = req.body;
+
+//   console.log("req.body",req.body);
+  
+
+//   let authorOrderData = [];
+//   let cardId = [];
+//   const tempDate = moment(Date.now()).format("LLL");
+
+//   let customerOrderProduct = [];
+
+//   for (let i = 0; i < products?.length; i++) {
+//     const [pro] = products[i].product;
+//     console.log("obj",pro);
+    
+
+//     for (let j = 0; j < pro.length; j++) {
+//       let tempCusPro = pro[j].productInfo;
+//       tempCusPro.quantity = pro[j].quantity;
+//       tempCusPro.size = pro[j].size;
+//       tempCusPro.color = pro[j].color;
+//       customerOrderProduct.push(tempCusPro);
+
+//       if (pro[j]._id) {
+//         cardId.push(pro[j]._id);
+//       }
+//     }
+//   }
+
+//   try {
+//     // ⭐ get next order ID
+//     const newOrderId = await generateOrderId();
+
+//     // ⭐ create main customer order
+//     const order = await customerOrder.create({
+//       customerId: userId,
+//       new_order_id: newOrderId,   // ← store here
+//       shippingInfo,
+//       products: customerOrderProduct,
+//       price: price + shipping_fee,
+//       delivery_status: "pending",
+//       payment_status: "unpaid",
+//       date: tempDate,
+//     });
+
+//     // ⭐ create seller orders
+//     for (let i = 0; i < products.length; i++) {
+//       const pro = products[i].products;
+//       const sellerId = products[i].sellerId;
+
+//       let storePro = [];
+//       for (let j = 0; j < pro.length; j++) {
+//         let tempPro = pro[j].productInfo;
+//         tempPro.quantity = pro[j].quantity;
+//         tempPro.size = pro[j].size;
+//         tempPro.color = pro[j].color;
+//         storePro.push(tempPro);
+//       }
+
+//       authorOrderData.push({
+//         orderId: order.id,
+//          new_order_id:newOrderId,   // ← store here
+//         sellerId,
+//         products: storePro,
+//         price: price + shipping_fee,
+//         payment_status: "unpaid",
+//         shippingInfo,
+//         delivery_status: "pending",
+//         date: tempDate,
+//       });
+//     }
+
+//     await authOrderModel.insertMany(authorOrderData);
+
+//     for (let k = 0; k < cardId.length; k++) {
+//       await cardModel.findByIdAndDelete(cardId[k]);
+//     }
+
+//     setTimeout(() => {
+//       this.paymentCheck(order.id);
+//     }, 15000);
+
+//     responseReturn(res, 201, {
+//       message: "order placed success",
+//       order_number: newOrderId,
+//       orderId: order.id,
+//     });
+//   } catch (error) {
+//     console.log(error.message);
+//   }
+// };
 
 
   get_customer_databorad_data = async (req, res) => {

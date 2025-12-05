@@ -22,7 +22,7 @@ const CreatedOrders = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [remarks, setRemarks] = useState("");
 
-  console.log("searchValue",searchValue);
+  // console.log("selectedOrder",selectedOrder);
   
 
   useEffect(() => {
@@ -374,7 +374,7 @@ const CreatedOrders = () => {
                 {selectedOrder.products.map((product, index) => (
                   <div key={index} className="flex gap-4 items-start border-b border-slate-700 pb-4">
                     <img
-                      src={product.images?.[0]?.url}
+                      src={product.image}
                       alt={product.name}
                       className="w-20 h-20 object-cover rounded"
                     />

@@ -15,6 +15,9 @@ const OrderDetails = () => {
     (state) => state.order
   );
 
+  // console.log("orderrrrr",order);
+  
+
   useEffect(() => {
     dispatch(get_admin_order(orderId));
   }, [orderId]);

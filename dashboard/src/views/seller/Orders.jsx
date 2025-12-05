@@ -29,6 +29,9 @@ const Orders = () => {
     return deliveryMatch && paymentMatch;
   });
 
+  // console.log("filteredOrders",filteredOrders);
+  
+
   useEffect(() => {
     dispatch(
       get_seller_orders({

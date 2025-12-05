@@ -4,26 +4,29 @@ const customerSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
     },
     email: {
       type: String,
-      required: true,
     },
     phone: {
-      type: Number,
+      type: String, // Changed to String for phone numbers
       required: true,
+      unique: true,
     },
     password: {
       type: String,
-      required: true,
       select: false,
+    },
+    otp: {
+      type: Number
+    },
+    otpExpires: {
+      type: Date
     },
     method: {
       type: String,
       required: true,
     },
-
   },
   { timestamps: true }
 );

@@ -28,12 +28,30 @@ import {
 } from "lucide-react";
 import { FaRegHeart } from "react-icons/fa";
 import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
-const Header = () => {
+const Header = ({cartCount1}) => {
+
+  // console.log("cartCount1",cartCount1);
+  
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+const CART_KEY = "guestCart";
+  const [cartCount, setCartCount] = useState(0);
 
+  // console.log("cartCount",cartCount);
+  
+
+    useEffect(() => {
+    const existing = JSON.parse(Cookies.get(CART_KEY) || "[]");
+    const total = existing.reduce(
+      (sum, item) => sum + (item.quantity || 1),
+      0
+    );
+
+    setCartCount(cartCount1?cartCount1:total);
+  }, []);
   // Redux state
   const { userInfo } = useSelector((state) => state.auth);
   const { card_product_count, wishlist_count } = useSelector(
@@ -41,7 +59,7 @@ const Header = () => {
   );
   const { products, categorys } = useSelector((state) => state.home);
 
-  // console.log("card_product_count on header", card_product_count);
+  // console.log("cartCount on header", cartCount);
 
   // refs
   const typewriterRef = useRef(null);
@@ -562,9 +580,9 @@ const Header = () => {
               className="relative text-gray-700 hover:text-[#5987b8] transition p-1"
             >
               <ShoppingCartIcon className="h-5 w-5" />
-              {card_product_count > 0 && (
+              {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#5987b8] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {card_product_count}
+                  {cartCount}
                 </span>
               )}
             </button>
@@ -747,7 +765,7 @@ const Header = () => {
         />
       )}
 
-      {isCartPopupOpen && card_product_count > 0 &&(
+      {isCartPopupOpen && cartCount > 0 &&(
         <div ref={cartPopupRef} className="fixed right-4 top-20 z-50">
           <CartPopup onClose={toggleCartPopup} />
         </div>

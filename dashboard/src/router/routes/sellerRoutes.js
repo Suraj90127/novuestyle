@@ -8,6 +8,7 @@ import AllGift from "../../views/seller/AllGift";
 import QueryForm from "../../views/seller/QueryForm";
 import HeadingsManager from "../../views/admin/HeadingsManager";
 import DiscountManager from "../../views/admin/DiscountManager";
+import Alluser from "../../views/seller/Alluser.jsx";
 const SellerDashboard = lazy(() =>
   import("../../views/seller/SellerDashboard")
 );
@@ -100,6 +101,12 @@ export const sellerRoutes = [
   {
     path: "/seller/dashboard/products",
     element: <Products />,
+    role: "seller",
+    status: "active",
+  },
+  {
+    path: "/seller/dashboard/members",
+    element: <Alluser />,
     role: "seller",
     status: "active",
   },

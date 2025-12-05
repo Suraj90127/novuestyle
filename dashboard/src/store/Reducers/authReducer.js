@@ -104,6 +104,50 @@ export const get_user_info = createAsyncThunk(
     }
   }
 );
+export const get_all_user = createAsyncThunk(
+  "auth/get_all_user",
+  
+  async ({ parPage, page, searchValue }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.get(`/customers?page=${page}&&searchValue=${searchValue}&&parPage=${parPage}`, { withCredentials: true });
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+// Delete single customer
+export const delete_customer = createAsyncThunk(
+  "auth/delete_customer",
+  async ({ customerId }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.delete(`/customer/${customerId}`, { 
+        withCredentials: true 
+      });
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+// Bulk delete customers
+export const bulk_delete_customers = createAsyncThunk(
+  "auth/bulk_delete_customers",
+  async ({ customerIds }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.post('/customers/bulk-delete', 
+        { customerIds },
+        { withCredentials: true }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 
 const returnRole = (token) => {
   if (token) {
@@ -127,6 +171,9 @@ export const authReducer = createSlice({
     errorMessage: "",
     loader: false,
     userInfo: "",
+    alluser:null,
+     deleteLoading: false,
+    deleteSuccess: false,
     role: returnRole(localStorage.getItem("accessToken")),
     token: localStorage.getItem("accessToken"),
   },
@@ -134,6 +181,8 @@ export const authReducer = createSlice({
     messageClear: (state, _) => {
       state.errorMessage = "";
       state.successMessage = "";
+       state.deleteSuccess = false;
+      state.deleteError = "";
     },
   },
   extraReducers: {
@@ -197,6 +246,60 @@ export const authReducer = createSlice({
       state.userInfo = payload.userInfo;
       state.successMessage = payload.message;
     },
+    [get_all_user.pending]: (state, _) => {
+      state.loader = true;
+    },
+    [get_all_user.fulfilled]: (state, { payload }) => {
+      state.loader = false;
+      state.alluser = payload.data;
+      state.successMessage = payload.message;
+    },
+    [delete_customer.pending]: (state) => {
+        state.deleteLoading = true;
+        state.deleteSuccess = false;
+        state.deleteError = "";
+      },
+      [delete_customer.fulfilled]: (state, { payload }) => {
+        state.deleteLoading = false;
+        state.deleteSuccess = true;
+        state.successMessage = payload.message;
+        
+        // Remove deleted customer from alluser array
+        if (state.alluser.customers && payload.deletedCustomer) {
+          state.alluser.customers = state.alluser.customers.filter(
+            customer => customer._id !== payload.deletedCustomer.id
+          );
+          state.alluser.pagination.totalCustomers -= 1;
+        }
+      },
+      [delete_customer.rejected]: (state, { payload }) => {
+        state.deleteLoading = false;
+        state.deleteSuccess = false;
+        state.deleteError = payload?.message || "Failed to delete customer";
+      },
+      [bulk_delete_customers.pending]: (state) => {
+        state.deleteLoading = true;
+        state.deleteSuccess = false;
+        state.deleteError = "";
+      },
+      [bulk_delete_customers.fulfilled]: (state, { payload }) => {
+        state.deleteLoading = false;
+        state.deleteSuccess = true;
+        state.successMessage = payload.message;
+        
+        // Remove deleted customers from alluser array
+        if (state.alluser.customers && payload.details?.valid) {
+          state.alluser.customers = state.alluser.customers.filter(
+            customer => !payload.details.valid.includes(customer._id)
+          );
+          state.alluser.pagination.totalCustomers -= payload.details.deleted;
+        }
+      },
+      [bulk_delete_customers.rejected]: (state, { payload }) => {
+        state.deleteLoading = false;
+        state.deleteSuccess = false;
+        state.deleteError = payload?.message || "Failed to delete customers";
+      }
   },
 });
 export const { messageClear } = authReducer.actions;

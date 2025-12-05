@@ -1,34 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/api";
 import jwt_decode from "jwt-decode";
-
-// Customer Register Action
-// export const customer_register = createAsyncThunk(
-//   "auth/customer_register",
-//   async (info, { rejectWithValue, fulfillWithValue }) => {
-//     try {
-//       const { data } = await api.post("/customer/customer-register", info);
-//       localStorage.setItem("customerToken", data.token);
-//       return fulfillWithValue(data);
-//     } catch (error) {
-//       return rejectWithValue(error.response.data);
-//     }
-//   }
-// );
-
-// // Customer Login Action
-// export const customer_login = createAsyncThunk(
-//   "auth/customer_login",
-//   async (info, { rejectWithValue, fulfillWithValue }) => {
-//     try {
-//       const { data } = await api.post("/customer/customer-login", info);
-//       localStorage.setItem("customerToken", data.token);
-//       return fulfillWithValue(data);
-//     } catch (error) {
-//       return rejectWithValue(error.response.data);
-//     }
-//   }
-// );
+import Cookies from 'js-cookie';
 
 
 // Customer Register Action
@@ -63,10 +36,46 @@ export const customer_login = createAsyncThunk(
           withCredentials: true,   // 👈 important
         }
       );
-      localStorage.setItem("customerToken", data.token);
+
+      console.log("token data", data);
+      
+    
       return fulfillWithValue(data);
     } catch (error) {
       return rejectWithValue(error.response?.data || { error: "Something went wrong" });
+    }
+  }
+);
+
+// Add these action creators
+export const verify_otp = createAsyncThunk(
+  'auth/verify_otp',
+  async (info, { rejectWithValue }) => {
+    try {
+      const res = await api.post(`/customer/verify-otp`, info, {
+        withCredentials: true
+      });
+
+      console.log("resss",res);
+      
+        localStorage.setItem("customerToken", res.token);
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data);
+    }
+  }
+);
+
+export const resend_otp = createAsyncThunk(
+  'auth/resend_otp',
+  async (info, { rejectWithValue }) => {
+    try {
+      const res = await api.post(`/customer/resend-otp`, info, {
+        withCredentials: true
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data);
     }
   }
 );
@@ -118,7 +127,7 @@ export const authReducer = createSlice({
   name: "auth",
   initialState: {
     loader: false,
-    userInfo: decodeToken(localStorage.getItem("customerToken")),
+    userInfo: decodeToken(Cookies.get('customerToken')),
     errorMessage: "",
     successMessage: "",
   },
@@ -157,6 +166,32 @@ export const authReducer = createSlice({
         state.loader = false;
       })
       .addCase(customer_login.fulfilled, (state, { payload }) => {
+        const userInfo = decodeToken(payload.token);
+        state.successMessage = payload.message;
+        state.loader = false;
+        state.userInfo = userInfo;
+      })
+      .addCase(verify_otp.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(verify_otp.rejected, (state, { payload }) => {
+        state.errorMessage = payload?.error || "An unexpected error occurred.";
+        state.loader = false;
+      })
+      .addCase(verify_otp.fulfilled, (state, { payload }) => {
+        const userInfo = decodeToken(payload.token);
+        state.successMessage = payload.message;
+        state.loader = false;
+        state.userInfo = userInfo;
+      })
+      .addCase(resend_otp.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(resend_otp.rejected, (state, { payload }) => {
+        state.errorMessage = payload?.error || "An unexpected error occurred.";
+        state.loader = false;
+      })
+      .addCase(resend_otp.fulfilled, (state, { payload }) => {
         const userInfo = decodeToken(payload.token);
         state.successMessage = payload.message;
         state.loader = false;

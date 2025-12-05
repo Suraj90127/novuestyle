@@ -27,6 +27,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, Thumbs } from "swiper/modules";
 import { Share, Share2, Star } from "lucide-react";
 import { sendMetaEventSafe } from "../utils/sendMetaEvent";
+import Cookies from "js-cookie";
 
 export default function Component() {
   const { product, categorys, discount, shipping } = useSelector(
@@ -176,46 +177,166 @@ export default function Component() {
     dispatch(getShipping());
   }, [dispatch]);
 
-  const add_card = async (id, product) => {
+  // const add_card = async (id, product) => {
 
-    // console.log("product on add to cart", product);
-    if (userInfo) {
-      let price = product?.price
-        ? product.price -
-        Math.floor((product.price * product.discount) / 100)
-        : 0;
-      try {
-        // 1️⃣ Fire InitiateCheckout event BEFORE redirect
-        await sendMetaEventSafe({
-          eventType: "AddToCart",
-          price: price,
-          order: null,
-          products: product,
-          userInfo: userInfo, // guest allowed
-        });
-        const response = await dispatch(
-          add_to_card({
-            userId: userInfo.id,
-            quantity: 1,
-            productId: id,
-            color: selectedColor || "Default",
-            size: selectedSize || "Default",
-          })
-        ).unwrap();
+  //   // console.log("product on add to cart", product);
+  //   if (userInfo) {
+  //     let price = product?.price
+  //       ? product.price -
+  //       Math.floor((product.price * product.discount) / 100)
+  //       : 0;
+  //     try {
+  //       // 1️⃣ Fire InitiateCheckout event BEFORE redirect
+  //       await sendMetaEventSafe({
+  //         eventType: "AddToCart",
+  //         price: price,
+  //         order: null,
+  //         products: product,
+  //         userInfo: userInfo, // guest allowed
+  //       });
+  //       const response = await dispatch(
+  //         add_to_card({
+  //           userId: userInfo.id,
+  //           quantity: 1,
+  //           productId: id,
+  //           color: selectedColor || "Default",
+  //           size: selectedSize || "Default",
+  //         })
+  //       ).unwrap();
 
-        if (response.message) {
-          toast.success(response.message);
-          dispatch(messageClear());
-        }
-      } catch (error) {
-        toast.error(error.error || "An error occurred");
-        dispatch(messageClear());
-      }
-    } else {
-      openLoginModal();
+  //       if (response.message) {
+  //         toast.success(response.message);
+  //         dispatch(messageClear());
+  //       }
+  //     } catch (error) {
+  //       toast.error(error.error || "An error occurred");
+  //       dispatch(messageClear());
+  //     }
+  //   } else {
+  //     openLoginModal();
+  //   }
+  // };
+
+// const CART_KEY = "guestCart";
+  const [cartCount1, setCartCount1] = useState(0);
+
+const CART_KEY = "guestCart";
+
+const makeSafeProduct = (product) => ({
+  _id: product._id,
+  name: product.name,
+  slug: product.slug,
+  price: product.price,
+  discount: product.discount,
+  stock: product.stock,
+  sellerId: product.sellerId,
+  shopName: product.shopName,
+  category: product.category,
+  subCategory: product.subCategory,
+  gender: product.gender,
+  design: product.design,
+  fabric: product.fabric,
+  section: product.section,
+  rating: product.rating,
+
+  // sirf required image data
+  images: Array.isArray(product.images)
+    ? product.images.map((img) => ({
+        url: img.url,
+        public_id: img.public_id,
+      }))
+    : [],
+
+  // size array safe hai
+  size: product.size,
+});
+
+
+const add_card = async (id, product) => {
+  console.log("PRO:", product);
+
+  const productId = product?._id || id;
+  const color = selectedColor || "Default";
+  const size = selectedSize || "Default";
+
+  const price = product?.price
+    ? product.price - Math.floor((product.price * product.discount) / 100)
+    : 0;
+
+  // Tracking
+  try {
+    await sendMetaEventSafe({
+      eventType: "AddToCart",
+      price,
+      order: null,
+      products: [
+        {
+          productInfo: {
+            _id: productId,
+            price: product.price,
+          },
+          quantity: 1,
+        },
+      ],
+      userInfo: userInfo || {},
+    });
+  } catch (e) {
+    console.log("META SAFE ERROR:", e?.message);
+  }
+
+  try {
+    let existing = [];
+    try {
+      const raw = Cookies.get(CART_KEY);
+      existing = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(existing)) existing = [];
+    } catch {
+      existing = [];
     }
-  };
 
+    const index = existing.findIndex(
+      (item) =>
+        String(item.productId) === String(productId) &&
+        item.color === color &&
+        item.size === size
+    );
+
+    const safeProduct = makeSafeProduct(product);
+
+    if (index >= 0) {
+      existing[index].quantity = (existing[index].quantity || 1) + 1;
+    } else {
+      existing.push({
+        productId,
+        quantity: 1,
+        color,
+        size,
+        price,           // discounted price
+        product: safeProduct,   // 🔥 safe, light object
+        name: product.name,
+        slug: product.slug,
+        image: product.images?.[0]?.url,
+      });
+    }
+
+    Cookies.set(CART_KEY, JSON.stringify(existing), { expires: 7 });
+
+    // optional cart badge
+    if (typeof setCartCount1 === "function") {
+      const total = existing.reduce(
+        (sum, item) => sum + (item.quantity || 1),
+        0
+      );
+      setCartCount1(total);
+    }
+
+    console.log("UPDATED CART:", existing);
+    toast.success("Added to cart");
+  } catch (e) {
+    console.log("guest cart cookie error:", e);
+    toast.error("Something went wrong");
+  }
+};
 
   const add_wishlist = async (pro) => {
     if (!userInfo) {
@@ -346,9 +467,10 @@ export default function Component() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+
   return (
     <div className="bg-white">
-      <Header />
+      <Header cartCount1={cartCount1} />
       <div className="flex flex-col md:flex-row gap-6 md:w-[80%] mx-auto md:mt-[100px] mt-[90px] md:h-[90vh] overflow-hidden">
         {/* LEFT SECTION (Sticky Images) */}
         <style>
@@ -745,7 +867,7 @@ export default function Component() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg md:hidden z-50">
         <div className="flex gap-3">
           <button
-            onClick={() => add_card(product?._id)}
+           onClick={() => add_card(product?._id, product)}
             className="flex-1 border border-gray-800 text-gray-900 py-3 hover:bg-gray-100 transition font-medium"
             disabled={!product?.stock}
           >

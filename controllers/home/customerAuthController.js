@@ -1,4 +1,5 @@
 const customerModel = require("../../models/customerModel");
+const  axios = require('axios');
 const otpModel = require("../../models/otpModel.js");
 const { responseReturn } = require("../../utiles/response");
 const { createToken } = require("../../utiles/tokenCreate");
@@ -7,6 +8,8 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const { log } = require("console");
+const fast2sms = require('fast-two-sms');
+
 
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
@@ -17,9 +20,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+ const apiKey = process.env.FAST2SMS_API_KEY || "FCwYW9NiVj7rVGpteu8OoGk57p9brahuvO3wDDAzfvqWWYtmUg9kfnvgNJzi";
+
 class customerAuthController {
   customer_register = async (req, res) => {
     const { name, phone, email, password } = req.body;
+
+    // console.log("sdhkjdfshj",req.body);
+    
 
     try {
       const customer = await customerModel.findOne({ email });
@@ -27,8 +35,8 @@ class customerAuthController {
         responseReturn(res, 404, { error: "Email already exits" });
       } else {
         const createCustomer = await customerModel.create({
-          name: name.trim(),
-          email: email.trim(),
+          name: name,
+          email: email,
           phone: phone,
           password: await bcrypt.hash(password, 10),
           method: "menualy",
@@ -55,38 +63,421 @@ class customerAuthController {
     }
   };
 
-  customer_login = async (req, res) => {
-    const { email, password } = req.body;
-    try {
-      const customer = await customerModel
-        .findOne({ email })
-        .select("+password");
-      if (customer) {
-        const match = await bcrypt.compare(password, customer.password);
-        if (match) {
-          const token = await createToken({
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-            method: customer.method,
-          });
-        res.cookie("customerToken", token, {
-        httpOnly: true,
-        secure: false,       // localhost pe false, production https pe true
-        sameSite: "lax",     // agar alag domain use karoge to "none" + secure: true
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  // customer_login = async (req, res) => {
+  //   const { phone } = req.body;
+
+  //   console.log("phone",phone);
+    
+  //   try {
+  //     const customer = await customerModel
+  //       .findOne({ phone })
+  //       .select("+password");
+  //     if (customer) {
+  //       const match = await bcrypt.compare(password, customer.password);
+  //       if (match) {
+  //         const token = await createToken({
+  //           id: customer.id,
+  //           name: customer.name,
+  //           email: customer.email,
+  //           method: customer.method,
+  //         });
+  //       res.cookie("customerToken", token, {
+  //       httpOnly: true,
+  //       secure: false,       // localhost pe false, production https pe true
+  //       sameSite: "lax",     // agar alag domain use karoge to "none" + secure: true
+  //       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  //     });
+  //         responseReturn(res, 201, { message: "Login success", token });
+  //       } else {
+  //         responseReturn(res, 404, { error: "Password wrong" });
+  //       }
+  //     } else {
+  //       responseReturn(res, 404, { error: "Email not found" });
+  //     }
+  //   } catch (error) {
+  //     console.log(error.message);
+  //   }
+  // };
+
+customer_login = async (req, res) => {
+  const { phone } = req.body;
+  
+  console.log("phone", phone);
+  
+  // Validate phone number
+  if (!phone || phone.length !== 10) {
+    return responseReturn(res, 400, { error: "Please enter a valid 10-digit mobile number" });
+  }
+  
+  try {
+    // Check if user exists
+    const customer = await customerModel.findOne({ phone });
+    
+    // Generate OTP
+    const otp = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
+    const otpExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+
+    const payload = {
+      route: "q",  
+      sender_id: "TXTIND",
+      message: `Verification Code: ${otp}`, 
+      language: "english",
+      numbers: phone
+    };
+
+    
+    if (customer) {
+      // User exists - update OTP
+      customer.otp = otp;
+      customer.otpExpires = otpExpires;
+      await customer.save();
+
+    } else {
+      // New user - create account
+      const tempPassword = crypto.randomBytes(8).toString('hex');
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      
+      const newCustomer = new customerModel({
+        phone: phone,
+        otp: otp,
+        otpExpires: otpExpires,
+        method: "mobile",
+        password: hashedPassword,
+        name: `User${phone.slice(-4)}` // Default name
       });
-          responseReturn(res, 201, { message: "Login success", token });
-        } else {
-          responseReturn(res, 404, { error: "Password wrong" });
-        }
-      } else {
-        responseReturn(res, 404, { error: "Email not found" });
-      }
-    } catch (error) {
-      console.log(error.message);
+      
+      await newCustomer.save();
     }
+    
+    // Send OTP via Fast2SMS
+    try {
+    
+      if (!apiKey) {
+        // For development/testing, just return OTP in response
+        console.log(`DEV MODE: OTP for ${phone} is ${otp}`);
+        
+        return responseReturn(res, 200, { 
+          message: "OTP sent successfully (DEV MODE)", 
+          otpSent: true,
+          phone: phone,
+          existingUser: !!customer,
+          otp: otp, // Send OTP in response for development
+          devMode: true
+        });
+      }
+
+    const {data} = await axios.post(
+      "https://www.fast2sms.com/dev/bulkV2",
+      payload,
+      {
+        headers: {
+          authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+ 
+      console.log("Fast2SMS Response:", data);
+      
+      if (data.return === true) {
+        responseReturn(res, 200, { 
+          message: "OTP sent successfully", 
+          otpSent: true,
+          phone: phone,
+          existingUser: !!customer
+        });
+      } else {
+        console.error("Fast2SMS Error:", data.message || data);
+        // Fallback: Return OTP in development
+        console.log(`FALLBACK: OTP for ${phone} is ${otp}`);
+        
+        responseReturn(res, 400, { 
+          message: "OTP sent successfully", 
+          otpSent: true,
+          phone: phone,
+          existingUser: !!customer,
+          otp: otp, // For development/testing
+          fallback: true
+        });
+      }
+      
+    } catch (smsError) {
+      console.error("SMS sending failed:", smsError);
+      
+      // Fallback: Return OTP in response for development
+      console.log(`ERROR FALLBACK: OTP for ${phone} is ${otp}`);
+      
+      responseReturn(res, 200, { 
+        message: "OTP sent successfully (Fallback Mode)", 
+        otpSent: true,
+        phone: phone,
+        existingUser: !!customer,
+        otp: otp, // Send OTP in response for development/testing
+        fallback: true
+      });
+    }
+    
+  } catch (error) {
+    console.log("Server error:", error.message);
+    responseReturn(res, 500, { error: "Server error. Please try again." });
+  }
+};
+
+// Add OTP verification function
+verify_otp = async (req, res) => {
+  const { phone, otp } = req.body;
+  
+  console.log("Verifying OTP:", { phone, otp });
+  
+  try {
+    // Find user with valid OTP
+    const customer = await customerModel.findOne({ 
+      phone,
+      otp: parseInt(otp), // Convert otp to number for comparison
+      otpExpires: { $gt: Date.now() } // Check if OTP is not expired
+    });
+    
+    if (!customer) {
+      return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+    }
+    
+    // Clear OTP after successful verification
+    customer.otp = undefined;
+    customer.otpExpires = undefined;
+    await customer.save();
+    
+    // Generate token
+    const token = await createToken({
+      id: customer._id,
+      phone: customer.phone,
+      name: customer.name,
+      email: customer.email || "",
+      method: customer.method,
+    });
+    
+    // Set cookie
+    res.cookie("customerToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+    
+    console.log("OTP verified successfully for user:", customer.phone);
+    
+    responseReturn(res, 200, { 
+      message: "Login successful", 
+      token,
+      user: {
+        id: customer._id,
+        phone: customer.phone,
+        name: customer.name,
+        email: customer.email,
+        isNewUser: customer.name === `User${customer.phone.slice(-4)}` // Check if default name
+      }
+    });
+    
+  } catch (error) {
+    console.log("OTP verification error:", error.message);
+    responseReturn(res, 500, { error: "Server error during OTP verification" });
+  }
+};
+
+// Add resend OTP function
+resend_otp = async (req, res) => {
+  const { phone } = req.body;
+  
+  console.log("Resending OTP for:", phone);
+  
+  try {
+    const customer = await customerModel.findOne({ phone });
+    
+    if (!customer) {
+      return responseReturn(res, 404, { error: "Phone number not found" });
+    }
+    
+    // Generate new OTP
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    const otpExpires = Date.now() + 10 * 60 * 1000;
+    
+    // Update OTP
+    customer.otp = otp;
+    customer.otpExpires = otpExpires;
+    await customer.save();
+    
+    // Send OTP via Fast2SMS
+    try {
+      const apiKey = process.env.FAST2SMS_API_KEY;
+      
+      if (!apiKey) {
+        console.log(`DEV MODE: New OTP for ${phone} is ${otp}`);
+        return responseReturn(res, 200, { 
+          message: "OTP resent successfully (DEV MODE)", 
+          otpSent: true,
+          otp: otp,
+          devMode: true
+        });
+      }
+      
+      const options = {
+        authorization: apiKey,
+        message: `Your new OTP is ${otp}. Valid for 10 minutes.`,
+        numbers: [phone]
+      };
+      
+      const response = await fast2sms.sendMessage(options);
+      console.log("Resent OTP response:", response);
+      
+      responseReturn(res, 200, { 
+        message: "OTP resent successfully", 
+        otpSent: true 
+      });
+      
+    } catch (smsError) {
+      console.error("Resend SMS failed:", smsError);
+      // Fallback
+      console.log(`FALLBACK: New OTP for ${phone} is ${otp}`);
+      
+      responseReturn(res, 200, { 
+        message: "OTP resent successfully (Fallback)", 
+        otpSent: true,
+        otp: otp,
+        fallback: true
+      });
+    }
+    
+  } catch (error) {
+    console.log("Resend OTP error:", error.message);
+    responseReturn(res, 500, { error: "Failed to resend OTP" });
+  }
+};
+
+// Add OTP verification function
+verify_otp = async (req, res) => {
+  const { phone, otp } = req.body;
+  
+  try {
+    const customer = await customerModel.findOne({ 
+      phone,
+      otp,
+      otpExpires: { $gt: Date.now() } // Check if OTP is not expired
+    });
+    
+    if (!customer) {
+      return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+    }
+    
+    // Clear OTP after successful verification
+    customer.otp = undefined;
+    customer.otpExpires = undefined;
+    await customer.save();
+    
+    // Generate token
+    const token = await createToken({
+      id: customer._id,
+      phone: customer.phone,
+      name: customer.name || `User${customer.phone.slice(-4)}`,
+      email: customer.email || "",
+      method: customer.method,
+    });
+    
+    // Set cookie
+    res.cookie("customerToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+    
+    responseReturn(res, 200, { 
+      message: "Login successful", 
+      token,
+      user: {
+        id: customer._id,
+        phone: customer.phone,
+        name: customer.name,
+        email: customer.email,
+        isNewUser: !customer.name // Check if it's a first-time user
+      }
+    });
+    
+  } catch (error) {
+    console.log(error.message);
+    responseReturn(res, 500, { error: "Server error during OTP verification" });
+  }
+};
+
+
+
+// Add resend OTP function
+resend_otp = async (req, res) => {
+  const { phone } = req.body;
+  
+  try {
+    const customer = await customerModel.findOne({ phone });
+    
+    if (!customer) {
+      return responseReturn(res, 404, { error: "Phone number not found" });
+    }
+    
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    
+    // Update OTP
+    customer.otp = otp;
+    customer.otpExpires = Date.now() + 10 * 60 * 1000;
+    await customer.save();
+    
+    // Send OTP via Fast2SMS
+    const options = {
+      authorization: process.env.FAST2SMS_API_KEY || "FCwYW9NiVj7rVGpteu8OoGk57p9brahuvO3wDDAzfvqWWYtmUg9kfnvgNJzi",
+      message: `Your new OTP is ${otp}. Valid for 10 minutes.`,
+      numbers: [phone]
+    };
+    
+    const response = await fast2sms.sendMessage(options);
+    console.log("Resent OTP:", response);
+    
+    responseReturn(res, 200, { 
+      message: "OTP resent successfully", 
+      otpSent: true 
+    });
+    
+  } catch (error) {
+    console.log(error.message);
+    responseReturn(res, 500, { error: "Failed to resend OTP" });
+  }
+};
+   getCurrentUser = async (req, res) => {
+      try {
+        let { id } = req;
+
+        if (!id) {
+          return res.status(400).json({ error: "User ID missing" });
+        }
+
+        const customer = await customerModel
+          .findById(id)
+          .select("-password");
+
+        if (!customer) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const user = {
+          id: customer._id.toString(),
+          name: customer.name,
+          email: customer.email,
+          method: customer.method,
+          phone: customer.phone,
+        };
+
+        return res.status(200).json({ data: user });
+      } catch (error) {
+        console.log("Get current user error:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+      }
   };
+
 
   customer_logout = async (req, res) => {
     res.cookie("customerToken", "", {
@@ -147,6 +538,9 @@ class customerAuthController {
       }
     });
   };
+
+ 
+
   verifyOtpAndResetPassword = async (req, res) => {
     const { email, otp, npassword } = req.body;
     const otpRecord = await otpModel.findOne({ email: email, otp: otp });
@@ -166,38 +560,174 @@ class customerAuthController {
     responseReturn(res, 200, { message: "Password updated successfully" });
   };
 
-//  import customerModel from "../models/customerModel.js";
 
-getCurrentUser = async (req, res) => {
+ 
+  get_all_customers = async (req, res) => {
+    try {
+      let { page = 1, parPage = 10, searchValue = '' } = req.query;
+      
+      // Convert to numbers
+      page = parseInt(page);
+      parPage = parseInt(parPage);
+      
+      // Validate pagination parameters
+      if (page < 1) page = 1;
+      if (parPage < 1) parPage = 10;
+      
+      // Calculate skip value
+      const skipPage = parPage * (page - 1);
+      
+      // Build search query
+      let searchQuery = {};
+      if (searchValue && searchValue.trim() !== '') {
+        const searchRegex = new RegExp(searchValue.trim(), 'i');
+        searchQuery = {
+          $or: [
+            { name: searchRegex },
+            { email: searchRegex },
+            { phone: { $regex: searchRegex } },
+            { method: searchRegex }
+          ]
+        };
+      }
+      
+      // Execute queries in parallel for better performance
+      const [customers, totalCustomers] = await Promise.all([
+        // Get paginated customers
+        customerModel.find(searchQuery)
+          .select('-password') // Exclude password field
+          .skip(skipPage)
+          .limit(parPage)
+          .sort({ createdAt: -1 }) // Latest first
+          .lean(),
+        
+        // Get total count
+        customerModel.countDocuments(searchQuery)
+      ]);
+      
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCustomers / parPage);
+      
+      // Prepare response
+      const response = {
+        success: true,
+        customers,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCustomers,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+          perPage: parPage
+        }
+      };
+      
+      // responseReturn(res, 200, response);
+      return res.status(200).json({ data: response });
+      
+    } catch (error) {
+      console.error('Error fetching customers:', error.message);
+      responseReturn(res, 500, {
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  };
+
+
+  delete_customer_permanently = async (req, res) => {
   try {
-    let { id } = req;
+    const { customerId } = req.params;
 
-    if (!id) {
-      return res.status(400).json({ error: "User ID missing" });
-    }
-
-    const customer = await customerModel
-      .findById(id)
-      .select("-password");
-
+    // Check if customer exists
+    const customer = await customerModel.findById(customerId);
+    
     if (!customer) {
-      return res.status(404).json({ error: "User not found" });
+      return responseReturn(res, 404, {
+        success: false,
+        message: 'Customer not found'
+      });
     }
 
-    const user = {
-      id: customer._id.toString(),
-      name: customer.name,
-      email: customer.email,
-      method: customer.method,
-      phone: customer.phone,
-    };
 
-    return res.status(200).json({ data: user });
+    // Delete the customer
+    const deletedCustomer = await customerModel.findByIdAndDelete(customerId);
+
+    responseReturn(res, 200, {
+      success: true,
+      message: 'Customer deleted successfully',
+      deletedCustomer: {
+        id: deletedCustomer._id,
+        name: deletedCustomer.name,
+        email: deletedCustomer.email
+      }
+    });
+
   } catch (error) {
-    console.log("Get current user error:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error deleting customer:', error.message);
+    
+    if (error.name === 'CastError') {
+      return responseReturn(res, 400, {
+        success: false,
+        message: 'Invalid customer ID format'
+      });
+    }
+    
+    responseReturn(res, 500, {
+      success: false,
+      message: 'Failed to delete customer',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
+
+bulk_delete_customers = async (req, res) => {
+  try {
+    const { customerIds } = req.body;
+
+    if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+      return responseReturn(res, 400, {
+        success: false,
+        message: 'No customer IDs provided'
+      });
+    }
+
+    // Validate customer IDs
+    const validIds = customerIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+    
+    if (validIds.length === 0) {
+      return responseReturn(res, 400, {
+        success: false,
+        message: 'No valid customer IDs provided'
+      });
+    }
+
+    // Delete customers
+    const result = await customerModel.deleteMany({
+      _id: { $in: validIds }
+    });
+
+    responseReturn(res, 200, {
+      success: true,
+      message: `Successfully deleted ${result.deletedCount} customer(s)`,
+      deletedCount: result.deletedCount,
+      details: {
+        requested: customerIds.length,
+        valid: validIds.length,
+        deleted: result.deletedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error bulk deleting customers:', error.message);
+    responseReturn(res, 500, {
+      success: false,
+      message: 'Failed to delete customers'
+    });
+  }
+};
+
 
 }
 

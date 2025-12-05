@@ -96,6 +96,13 @@ export const allNav = [
     role: "seller",
     path: "/seller/dashboard/products",
   },
+  {
+    id: 14,
+    title: "Members",
+    icon: <RiProductHuntLine />,
+    role: "seller",
+    path: "/seller/dashboard/members",
+  },
   // {
   //   id: 12,
   //   title: "Add Gift Product",
