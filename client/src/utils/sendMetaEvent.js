@@ -36,7 +36,7 @@ export const sendMetaEvent = async (
   console.log("Sending to CAPI:", order, products, userInfo);
 
   // SERVER-SIDE CAPI
-  await axios.post("http://localhost:8000/api/meta/purchase", {
+  await axios.post("https://novuestyle.com/api/meta/purchase", {
     eventType: eventType,
     orderId: order.receipt || order.id || order._id,
     value: price,
@@ -181,7 +181,7 @@ export const sendMetaEventSafe = async ({
     }
 
     // --------- 3) META CAPI (SERVER SIDE) ----------
-    await axios.post("http://localhost:8000/api/meta/purchase", {
+    await axios.post("https://novuestyle.com/api/meta/purchase", {
       eventType,
       orderId:
         order?.receipt ||

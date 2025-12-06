@@ -1,20 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import Swal from "sweetalert2";
-import image2 from "../assets/Frame_48097704_1.svg";
+import image2 from "../assets/Frame_48097704_1.jpg";
 import MayLike from "../components/MayLike";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   get_category,
   get_product,
   getDiscount,
   getShipping,
 } from "../store/reducers/homeReducer";
-import { add_to_card, add_to_wishlist } from "../store/reducers/cardReducer";
-import { add_coupon, get_coupons } from "../store/reducers/couponReducer";
-import { messageClear } from "../store/reducers/authReducer";
+
+import {get_coupons } from "../store/reducers/couponReducer";
 import LoginModal from "../Authentication/Login";
 import RegisterModal from "../Authentication/Register";
 import ForgetModal from "../Authentication/ForgetPassword";
@@ -30,10 +28,11 @@ import { sendMetaEventSafe } from "../utils/sendMetaEvent";
 import Cookies from "js-cookie";
 
 export default function Component() {
-  const { product, categorys, discount, shipping } = useSelector(
+  const { product,shipping } = useSelector(
     (state) => state.home
   );
-  const { successMessage, errorMessage } = useSelector((state) => state.card);
+
+  
   const { coupons, loader } = useSelector((state) => state.coupon);
   const { userInfo } = useSelector((state) => state.auth);
   const shippingFee = shipping?.shipping?.shipping_fee;
@@ -41,16 +40,17 @@ export default function Component() {
   const [mainImage, setMainImage] = useState("");
   const swiperRef = useRef(null);
   const [isOpen, setIsOpen] = useState(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity] = useState(1);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setRegisterModalOpen] = useState(false);
   const [isForgetModalOpen, setForgetModalOpen] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  const [thumbnailLoading, setThumbnailLoading] = useState({});
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState(
     product?.size?.[0] || "medium"
   );
+    const [cartCount, setCartCount] = useState(0);
+  // const [ setCurrentSlideIndex] = useState(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   const [zoomStyle, setZoomStyle] = useState({
@@ -64,8 +64,6 @@ export default function Component() {
     mouseX: 0,
     mouseY: 0,
   });
-  const imgRef = useRef(null);
-  const zoomRef = useRef(null);
 
   useEffect(() => {
     if (product?.images?.length > 0) {
@@ -105,51 +103,8 @@ export default function Component() {
 
     return thumbnails;
   };
-
-  const handleCopyLink = () => {
-    const currentUrl = window.location.href;
-    navigator.clipboard
-      .writeText(currentUrl)
-      .then(() => {
-        Swal.fire({
-          icon: "success",
-          title: "Copied!",
-          text: "The product link has been copied to your clipboard.",
-          confirmButtonColor: "#1E40AF",
-        });
-      })
-      .catch(() => {
-        Swal.fire({
-          icon: "error",
-          title: "Failed!",
-          text: "Unable to copy the link. Please try again.",
-          confirmButtonColor: "#EF4444",
-        });
-      });
-  };
-
   const discountData = Array.isArray(coupons) ? coupons : [];
 
-  const handleShare = () => {
-    const currentUrl = window.location.href;
-
-    if (navigator.share) {
-      navigator
-        .share({
-          title: document.title,
-          text: "Check out this page!",
-          url: currentUrl,
-        })
-        .then(() => {
-          toast.success("Successfully shared!");
-        })
-        .catch((error) => {
-          toast.error("Error sharing:", error);
-        });
-    } else {
-      handleCopyLink();
-    }
-  };
 
   const { slug, sslug } = useParams();
   const dispatch = useDispatch();
@@ -177,48 +132,6 @@ export default function Component() {
     dispatch(getShipping());
   }, [dispatch]);
 
-  // const add_card = async (id, product) => {
-
-  //   // console.log("product on add to cart", product);
-  //   if (userInfo) {
-  //     let price = product?.price
-  //       ? product.price -
-  //       Math.floor((product.price * product.discount) / 100)
-  //       : 0;
-  //     try {
-  //       // 1️⃣ Fire InitiateCheckout event BEFORE redirect
-  //       await sendMetaEventSafe({
-  //         eventType: "AddToCart",
-  //         price: price,
-  //         order: null,
-  //         products: product,
-  //         userInfo: userInfo, // guest allowed
-  //       });
-  //       const response = await dispatch(
-  //         add_to_card({
-  //           userId: userInfo.id,
-  //           quantity: 1,
-  //           productId: id,
-  //           color: selectedColor || "Default",
-  //           size: selectedSize || "Default",
-  //         })
-  //       ).unwrap();
-
-  //       if (response.message) {
-  //         toast.success(response.message);
-  //         dispatch(messageClear());
-  //       }
-  //     } catch (error) {
-  //       toast.error(error.error || "An error occurred");
-  //       dispatch(messageClear());
-  //     }
-  //   } else {
-  //     openLoginModal();
-  //   }
-  // };
-
-// const CART_KEY = "guestCart";
-  const [cartCount1, setCartCount1] = useState(0);
 
 const CART_KEY = "guestCart";
 
@@ -253,7 +166,7 @@ const makeSafeProduct = (product) => ({
 
 
 const add_card = async (id, product) => {
-  console.log("PRO:", product);
+  // console.log("PRO:", product);
 
   const productId = product?._id || id;
   const color = selectedColor || "Default";
@@ -315,19 +228,19 @@ const add_card = async (id, product) => {
         product: safeProduct,   // 🔥 safe, light object
         name: product.name,
         slug: product.slug,
-        image: product.images?.[0]?.url,
+        image: mainImage?mainImage: product.images?.[0]?.url,
       });
     }
 
     Cookies.set(CART_KEY, JSON.stringify(existing), { expires: 7 });
 
     // optional cart badge
-    if (typeof setCartCount1 === "function") {
+    if (typeof setCartCount === "function") {
       const total = existing.reduce(
         (sum, item) => sum + (item.quantity || 1),
         0
       );
-      setCartCount1(total);
+      setCartCount(total);
     }
 
     console.log("UPDATED CART:", existing);
@@ -338,40 +251,8 @@ const add_card = async (id, product) => {
   }
 };
 
-  const add_wishlist = async (pro) => {
-    if (!userInfo) {
-      openLoginModal();
-      return;
-    }
-    try {
-      const response = await dispatch(
-        add_to_wishlist({
-          userId: userInfo.id,
-          productId: pro._id,
-          name: pro.name,
-          price: pro.price,
-          image: pro.images[0]?.url || pro.images[0],
-          discount: pro.discount,
-          rating: pro.rating,
-          slug: pro.slug,
-          color: selectedColor,
-          size: selectedSize,
-        })
-      ).unwrap();
-
-      toast.success(response.message);
-      dispatch(messageClear());
-    } catch (error) {
-      toast.error(error.error || "An error occurred");
-      dispatch(messageClear());
-    }
-  };
-
-  const toggleAccordion = (index) => {
-    setIsOpen(isOpen === index ? null : index);
-  };
-
   const thumbnails = getColorThumbnails();
+  
 
   // Initialize main image on first load and color change
   useEffect(() => {
@@ -388,16 +269,21 @@ const add_card = async (id, product) => {
   };
 
   // Handle color selection
-  const handleColorSelect = (imgObj) => {
+   const handleColorSelect = (imgObj,i) => {
+    console.log("ooo", imgObj);
+    console.log("i", i);
+    
     setSelectedColor(imgObj.color);
+    index(i)
     setMainImage(imgObj.url);
 
     // Reset to first slide of the new color
     if (swiperRef.current && swiperRef.current.swiper) {
       swiperRef.current.swiper.slideTo(0);
-      setCurrentSlideIndex(0);
+      setCurrentSlideIndex(0); // This will work now
     }
   };
+  
 
 
   useEffect(() => {
@@ -420,7 +306,14 @@ const add_card = async (id, product) => {
   const closeRegisterModal = () => setRegisterModalOpen(false);
   const closeForgetModal = () => setForgetModalOpen(false);
 
-  const buy = () => {
+  const buy = (id, product) => {
+
+    // console.log("PRO 2222:", product);
+
+    const productId = product?._id || id;
+  const color = selectedColor || "Default";
+  const size = selectedSize || "Default";
+
     if (!userInfo) {
       openLoginModal();
       return;
@@ -433,25 +326,26 @@ const add_card = async (id, product) => {
     } else {
       price = product.price;
     }
-    const obj = [
+
+    const safeProduct = makeSafeProduct(product);
+
+
+    const obj1 = [
       {
-        sellerId: product.sellerId,
-        shopName: product.shopName,
-        price: quantity * price,
-        products: [
-          {
-            quantity,
-            productInfo: product,
-            size: selectedSize,
-            color: selectedColor,
-            image: getCurrentColorImage(),
-          },
-        ],
-      },
-    ];
+        productId,
+        quantity: 1,
+        color,
+        size,
+        price,           // discounted price
+        product: safeProduct,   // 🔥 safe, light object
+        name: product.name,
+        slug: product.slug,
+         image: mainImage?mainImage: product.images?.[0]?.url,
+      }
+    ]
     navigate("/checkout", {
       state: {
-        products: obj,
+        products: obj1,
         price: price * quantity,
         shipping_fee: shippingFee,
         items: 1,
@@ -470,7 +364,7 @@ const add_card = async (id, product) => {
 
   return (
     <div className="bg-white">
-      <Header cartCount1={cartCount1} />
+      <Header cartCount={cartCount} setCartCount={setCartCount} />
       <div className="flex flex-col md:flex-row gap-6 md:w-[80%] mx-auto md:mt-[100px] mt-[90px] md:h-[90vh] overflow-hidden">
         {/* LEFT SECTION (Sticky Images) */}
         <style>
@@ -688,7 +582,7 @@ const add_card = async (id, product) => {
                 {product.images.map((imgObj, index) => (
                   <SwiperSlide
                     key={index}
-                    onClick={() => handleColorSelect(imgObj)}
+                    onClick={() => handleColorSelect(imgObj,index)}
                     className={`border-2 overflow-hidden h-[80px] ${selectedColor === imgObj.color
                       ? "border-[#5987b8] ring-2 ring-blue-200"
                       : "border-gray-300"
@@ -706,21 +600,22 @@ const add_card = async (id, product) => {
           )}
           {/* SIZE SELECTION */}
           {product?.size?.length > 0 && (
-            <div className="my-4">
-              <h3 className="font-semibold text-gray-800 mb-1">Select Size</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.size.map((size, i) => (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-gray-800">Select Size</h3>
+                <button className="text-primary text-sm hover:underline">
+                  Size Guide
+                </button>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {product.size.map((size, index) => (
                   <button
-                    key={i}
+                    key={index}
                     onClick={() => setSelectedSize(size)}
-                    disabled={size === "XXXL"}
-                    className={`px-4 py-2 border text-sm font-medium ${selectedSize === size
-                      ? "bg-[#5987b8] text-white border-[#5987b8]"
-                      : "bg-white border-gray-300 hover:bg-gray-50"
-                      } ${size === "XXXL"
-                        ? "opacity-50 cursor-not-allowed line-through"
-                        : ""
-                      }`}
+                    className={`py-3 text-center rounded-lg border font-medium transition-all ${selectedSize === size
+                      ? 'bg-primary text-white border-primary shadow-lg'
+                      : 'bg-white border-gray-300 hover:border-primary hover:bg-primary/5'
+                    }`}
                   >
                     {size}
                   </button>
@@ -738,7 +633,7 @@ const add_card = async (id, product) => {
               Add to Cart
             </button>
             <button
-              onClick={buy}
+              onClick={()=>buy(product?._id, product)}
               className="bg-primary w-full text-white font-semibold py-3 transition"
             >
               Buy Now
@@ -874,7 +769,7 @@ const add_card = async (id, product) => {
             Add to Cart
           </button>
           <button
-            onClick={buy}
+            onClick={()=>buy(product?._id, product)}
             className="flex-1 bg-[#5987b8] text-white font-semibold py-3 transition"
           >
             Buy Now

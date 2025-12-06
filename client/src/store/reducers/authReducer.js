@@ -87,7 +87,7 @@ export const userDetail = createAsyncThunk(
   async (_, { rejectWithValue, fulfillWithValue }) => {
     try {
       const { data } = await api.get(`/useringfo`, { withCredentials: true });
-      console.log(" data",data);
+      // console.log(" data",data);
       
       return fulfillWithValue(data);
     } catch (error) {

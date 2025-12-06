@@ -38,7 +38,10 @@ module.exports = {
         "accent-gradient": "linear-gradient(to right, #11998e, #38ef7d)", // Green Shades
       },
       fontFamily: {
-        familySemiBold: ['familySemiBold', 'sans-serif'], // 👈 custom font name
+        'inter': ['Inter', 'sans-serif'],
+        'poppins': ['Poppins', 'sans-serif'],
+        'montserrat': ['Montserrat', 'sans-serif'],
+        'roboto': ['Roboto', 'sans-serif'],
       },
     },
   },

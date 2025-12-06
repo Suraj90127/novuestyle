@@ -21,8 +21,6 @@ export const get_card_products = createAsyncThunk(
       const { data } = await api.get(
         `/home/product/get-card-product/${userId}`
       );
-
-      console.log("card product data", data);
       
 
       return fulfillWithValue(data);

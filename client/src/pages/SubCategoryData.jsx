@@ -23,9 +23,13 @@ const SubCategoriesData = () => {
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setRegisterModalOpen] = useState(false);
   const [isForgetModalOpen, setForgetModalOpen] = useState(false);
-  const [showComingSoonPopup1, setShowComingSoonPopup1] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showComingSoonPopup1, setShowComingSoonPopup1] = useState(false);
   const [hasDataLoaded, setHasDataLoaded] = useState(false);
+
+  // console.log("showComingSoonPopup1",showComingSoonPopup1);
+  // console.log("hasDataLoaded",hasDataLoaded);
+  
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -51,23 +55,38 @@ const SubCategoriesData = () => {
     dispatch(getSubCatData({ category, slug, page, limit }));
   }, [dispatch, category, slug, page]);
 
-  
+  //  console.log("suraj000000000000",subData);
 
   // Check when data is loaded
- useEffect(() => {
-  if (subData.length > 0) { // Only if there are products
+useEffect(() => {
+  // Clear any existing timeout when component unmounts or data changes
+  let timeoutId;
+
+  if (subData.length > 0) {
     setIsLoading(false);
     setHasDataLoaded(true);
     setShowComingSoonPopup1(false); // Hide popup if products exist
-  } else if (subData.length === 0) { // Empty but first load
-    setIsLoading(false);
-    setHasDataLoaded(true);
     
-    // Show popup only if data is empty AND this is the first load
-    if (subData.length === 0) {
-      setShowComingSoonPopup1(true);
+    // Clear timeout if data loads before timeout completes
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
+  } else if (subData.length === 0 && hasDataLoaded) {
+    // Only show coming soon if data is empty after initial load
+    setIsLoading(false);
+    
+    timeoutId = setTimeout(() => {
+      // console.log("Showing coming soon popup - no data found");
+      setShowComingSoonPopup1(true);
+    }, 1000);
   }
+
+  // Cleanup function
+  return () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  };
 }, [subData, hasDataLoaded]);
 
   // Check if there are more products to load
@@ -88,24 +107,6 @@ const SubCategoriesData = () => {
 
     await dispatch(getSubCatData({ category, slug, page: 1, limit: newLimit }));
     setIsLoadingMore(false);
-  };
-
-  const add_card = async (id) => {
-    if (!userInfo) {
-      openLoginModal();
-      return;
-    }
-    dispatch(
-      add_to_card({
-        userId: userInfo?.id,
-        quantity: 1,
-        productId: id,
-      })
-    ).then((res) => {
-      if (res.payload?.message) {
-        toast.success(res.payload.message);
-      }
-    });
   };
 
   const add_wishlist = async (pro) => {
@@ -150,7 +151,7 @@ const SubCategoriesData = () => {
 
   const handleProductClick = async (product) => {
     await sendMetaEventSafe({
-      eventType: "AddToCart",
+      eventType: "ViewContent",
       price: product.price,
       order: null,
       products: product,

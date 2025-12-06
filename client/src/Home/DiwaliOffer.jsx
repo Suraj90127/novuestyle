@@ -117,7 +117,7 @@ const Products1 = ({ openLoginModal }) => {
 
     // Fire meta event
     await sendMetaEventSafe({
-      eventType: "AddToCart",
+      eventType: "ViewContent",
       price: product.price,
       order: null,
       products: product,

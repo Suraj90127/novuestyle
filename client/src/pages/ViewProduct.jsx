@@ -76,9 +76,9 @@ const ViewProduct = () => {
       <Header />
 
       {/* MAIN CONTENT */}
-      <div className="pt-28 pb-20 px-4 max-w-7xl mx-auto">
+      <div className="pt-28 md:pb-20  max-w-7xl mx-auto">
         {/* PAGE HEADER */}
-        <div className="mb-10 border-b border-gray-300 pb-4">
+        <div className="mb-2 border-b px-4">
           <Link
             to="/dashboard-client"
             className="inline-flex items-center gap-2 text-primary hover:opacity-75 transition"
@@ -91,14 +91,14 @@ const ViewProduct = () => {
             Order Details
           </h1>
           <p className="text-gray-600 mt-1 text-sm tracking-wide">
-            ORDER ID: <span className="font-medium">{myOrder._id}</span>
+            ORDER ID: <span className="font-semibold text-xl">{myOrder.new_order_id}</span>
           </p>
         </div>
 
         {/* INFO GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 md:gap-6 md:mb-10">
           {/* ORDER INFO */}
-          <div className="bg-white shadow border border-gray-300 p-6">
+          <div className="bg-white border-b  p-6">
             <div className="flex items-center gap-2 mb-4">
               <Package className="w-5 h-5 text-primary" />
               <h2 className="text-xl font-semibold text-gray-900">
@@ -142,15 +142,15 @@ const ViewProduct = () => {
           </div>
 
           {/* PAYMENT / DELIVERY STATUS */}
-          <div className="bg-white shadow border border-gray-300 p-6">
+          <div className="bg-white border-b p-6">
             <div className="flex items-center gap-2 mb-4">
               <CreditCard className="w-5 h-5 text-primary" />
               <h2 className="text-xl font-semibold text-gray-900">Status</h2>
             </div>
 
-            <div className="space-y-6">
+            <div className="sm:space-y-1 md:space-y-5">
               {/* Payment */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">Payment</span>
                 <span
                   className={`px-3 py-1 text-sm font-medium border ${getStatusColor(
@@ -160,7 +160,7 @@ const ViewProduct = () => {
                   {myOrder.payment_status?.toUpperCase()}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">COD Fee</span>
                 <span
                   className={`px-3 py-1 text-sm font-medium `}
@@ -169,7 +169,7 @@ const ViewProduct = () => {
                 </span>
               </div>
                  {/* Delivery */}
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">Delivery</span>
                 <span
                   className={`px-3 py-1 text-sm font-medium  `}
@@ -179,7 +179,7 @@ const ViewProduct = () => {
               </div>
               {myOrder?.remarks&&(
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">Remarks</span>
                 <span
                   className={`px-3 py-1 text-sm font-medium`}
@@ -190,7 +190,7 @@ const ViewProduct = () => {
               )}
               {myOrder.trackingNumber&&(
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 font-medium">Tracking Number</span>
                 <span
                   className={`px-3 py-1 text-sm font-medium  `}
@@ -205,7 +205,7 @@ const ViewProduct = () => {
           </div>
 
           {/* SHIPPING INFO */}
-          <div className="bg-white shadow border border-gray-300 p-6">
+          <div className="bg-white border-b  p-6">
             <div className="flex items-center gap-2 mb-4">
               <MapPin className="w-5 h-5 text-primary" />
               <h2 className="text-xl font-semibold text-gray-900">
@@ -231,7 +231,7 @@ const ViewProduct = () => {
         </div>
 
         {/* ITEMS SECTION */}
-        <div className="bg-white shadow border border-gray-300">
+        <div className="bg-white  p-3">
           <div className="px-6 py-4 border-b border-gray-300">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Package className="w-5 h-5" />
@@ -239,7 +239,7 @@ const ViewProduct = () => {
             </h2>
           </div>
 
-          <div className="p-6">
+          <div className="p-2">
             <div className="space-y-6">
               {myOrder.products?.map((product, index) => (
                 <div
@@ -257,7 +257,7 @@ const ViewProduct = () => {
                   <div className="flex-1">
                     <Link
                       to={`/product/details/${product.slug}`}
-                      className="text-lg font-semibold text-gray-900 hover:text-primary transition"
+                      className="sm:text-md md:text-lg font-normal text-gray-700 hover:text-primary transition"
                     >
                       {product.name}
                     </Link>

@@ -705,9 +705,17 @@ export default function Component() {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
 
-  useEffect(() => {
+  // console.log("serInfo",userInfo);
+  
+
+useEffect(() => {
+  // Only dispatch if userInfo and userInfo.id exist
+  if (userInfo && userInfo.id) {
     dispatch(get_orders({ status: state, customerId: userInfo.id }));
-  }, [state]);
+  }
+}, [state, userInfo]); // Add userInfo to dependency array
+
+
 
   const dispatch = useDispatch();
   const navigate = useNavigate();

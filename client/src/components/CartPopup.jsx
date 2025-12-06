@@ -189,7 +189,7 @@ const CartPopup = ({ onClose }) => {
 
     
   return (
-    <div className="absolute md:top-16 sm:top-3 md:right-10 sm:-right-4 bg-white shadow-lg py-2 sm:w-[250px]  md:w-[300px] z-50">
+    <div className="absolute md:top-6 sm:top-3 md:right-0 sm:-right-4 bg-white shadow-lg py-2 sm:w-[250px]  md:w-[300px] z-50">
       <h2 className="text-lg font-semibold mb-2 px-4 pt-5">Your Cart</h2>
 
       {items.length === 0 ? (

@@ -189,10 +189,10 @@ const LoginModal = ({ closeModal, openRegisterModal, openForgetModal }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[11000] flex items-center justify-center sm:mt-32 md:mt-4">
+    <div className="fixed inset-0 z-[11000] flex items-center justify-center mt-32">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+        className="fixed bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={closeModal}
       ></div>
       
@@ -472,7 +472,7 @@ const LoginModal = ({ closeModal, openRegisterModal, openForgetModal }) => {
               </div>
             </div>
             
-            <div className="text-center">
+            {/* <div className="text-center">
               <button
                 type="button"
                 onClick={handleforget}
@@ -483,7 +483,7 @@ const LoginModal = ({ closeModal, openRegisterModal, openForgetModal }) => {
               <p className="text-xs text-gray-500 mt-2">
                 Contact support if you're having issues with OTP
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

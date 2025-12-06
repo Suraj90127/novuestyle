@@ -38,7 +38,7 @@ const CategoriesData = () => {
     categorys,
   } = useSelector((state) => state.home);
 
-  console.log("products",products);
+  // console.log("products",products);
   
 
   const { successMessage, errorMessage, wishlist } = useSelector(
@@ -96,7 +96,7 @@ const CategoriesData = () => {
         if (firstHalfProducts.length === 0) {
           setShowComingSoonPopup(true);
         }
-      }, 200);
+      }, 500);
     }
   }, [products, categorys]);
 
@@ -157,7 +157,7 @@ const CategoriesData = () => {
   }
 
 
-  console.log("firstHalfProducts",firstHalfProducts);
+  // console.log("firstHalfProducts",firstHalfProducts);
   
 
   const handleShopNow = () => {

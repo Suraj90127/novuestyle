@@ -97,10 +97,10 @@ const RegisterModal = ({ closeModal, openLoginModal }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[11000] flex items-center justify-center sm:mt-36 md:mt-20">
+    <div className="fixed inset-0 z-[11000] flex items-center justify-center sm:mt-36 md:mt-28">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+        className="fixed  bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={closeModal}
       ></div>
       

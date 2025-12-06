@@ -30,28 +30,35 @@ import { FaRegHeart } from "react-icons/fa";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 
-const Header = ({cartCount1}) => {
+const Header = ({cartCount,setCartCount}) => {
 
-  // console.log("cartCount1",cartCount1);
-  
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-const CART_KEY = "guestCart";
-  const [cartCount, setCartCount] = useState(0);
+  const CART_KEY = "guestCart";
 
-  // console.log("cartCount",cartCount);
-  
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const existing = JSON.parse(Cookies.get(CART_KEY) || "[]");
+        const total = existing.reduce(
+          (sum, item) => sum + (item.quantity || 1),
+          0
+        );
 
-    useEffect(() => {
-    const existing = JSON.parse(Cookies.get(CART_KEY) || "[]");
-    const total = existing.reduce(
-      (sum, item) => sum + (item.quantity || 1),
-      0
-    );
+        // Call setCartCount prop to update parent state
+        if (typeof setCartCount === "function") {
+          setCartCount(total);
+        }
+      } catch (error) {
+        console.error("Error updating cart count:", error);
+      }
+    };
 
-    setCartCount(cartCount1?cartCount1:total);
-  }, []);
+    updateCartCount();
+  }, [setCartCount]); // Only run when setCartCount changes
+
+
   // Redux state
   const { userInfo } = useSelector((state) => state.auth);
   const { card_product_count, wishlist_count } = useSelector(
@@ -62,7 +69,6 @@ const CART_KEY = "guestCart";
   // console.log("cartCount on header", cartCount);
 
   // refs
-  const typewriterRef = useRef(null);
   const cartPopupRef = useRef(null);
   const searchRef = useRef(null);
   const mobileMenuRef = useRef(null);
@@ -79,21 +85,12 @@ const CART_KEY = "guestCart";
   // console.log("isCartPopupOpen",isCartPopupOpen);
   
   const [searchValue, setSearchValue] = useState("");
-  const [showSearchMenu, setShowSearchMenu] = useState(false);
-  const [filteredProductName, setFilteredProductName] = useState([]);
+  const [ setShowSearchMenu] = useState(false);
+  const [ setFilteredProductName] = useState([]);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hideTimeout, setHideTimeout] = useState(null);
-
-    const {
-      card_products,
-    } = useSelector((state) => state.card);
-
-    // console.log("card_products111111",card_products);
-    // console.log("userInfo222222222222",userInfo);
-  
 
   // initial fetches
   useEffect(() => {
